@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { StyleSheet, Text, View, Platform, Dimensions } from "react-native";
+import { useMemo, useState } from "react";
+import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import mapStyle from "../theme/mapStyle.json";
@@ -45,11 +45,11 @@ const getDottedCoordinates = (coordinates, intervalMeters) => {
   return dots;
 };
 
-const MapViewComponent = ({ threatPins, destination }) => {
+const MapViewComponent = ({ threatPins, destination, userLocation }) => {
   const [lineScale, setLineScale] = useState(1);
   const [iosSafeRouteCoords, setIosSafeRouteCoords] = useState([]);
   const [iosAltRouteCoords, setIosAltRouteCoords] = useState([]);
-  const origin = { latitude: 15.4828, longitude: 120.9749 }; // Near NEUST
+  const origin = userLocation || { latitude: 15.4828, longitude: 120.9749 }; // Near NEUST
 
   const safeHavens = [
     {
@@ -72,11 +72,11 @@ const MapViewComponent = ({ threatPins, destination }) => {
   const toRad = (value) => (value * Math.PI) / 180;
   const routeVector = destination
     ? {
-      x:
-        (destination.longitude - origin.longitude) *
-        Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
-      y: destination.latitude - origin.latitude,
-    }
+        x:
+          (destination.longitude - origin.longitude) *
+          Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
+        y: destination.latitude - origin.latitude,
+      }
     : { x: 0, y: 0 };
 
   const projectionOnRoute = (point) => {
@@ -128,7 +128,10 @@ const MapViewComponent = ({ threatPins, destination }) => {
   const routeStrokeWidth = 4 + Math.round(1.5 * lineScale);
   const routeDashPattern =
     Platform.OS === "ios"
-      ? [routeStrokeWidth * metersPerPixel, routeStrokeWidth * 3.5 * metersPerPixel]
+      ? [
+          routeStrokeWidth * metersPerPixel,
+          routeStrokeWidth * 3.5 * metersPerPixel,
+        ]
       : [0, routeStrokeWidth * 3.5];
 
   const safeRouteDots = useMemo(() => {
@@ -188,7 +191,8 @@ const MapViewComponent = ({ threatPins, destination }) => {
               optimizeWaypoints={false}
               zIndex={3}
               onReady={(result) => {
-                if (Platform.OS === "ios") setIosSafeRouteCoords(result.coordinates);
+                if (Platform.OS === "ios")
+                  setIosSafeRouteCoords(result.coordinates);
               }}
             />
 
@@ -204,7 +208,8 @@ const MapViewComponent = ({ threatPins, destination }) => {
               optimizeWaypoints={false}
               zIndex={2}
               onReady={(result) => {
-                if (Platform.OS === "ios") setIosAltRouteCoords(result.coordinates);
+                if (Platform.OS === "ios")
+                  setIosAltRouteCoords(result.coordinates);
               }}
             />
 

@@ -41,7 +41,7 @@ const GuardianBanner = ({ isActive, onCancel }) => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 160,
+    bottom: 120,
     left: 20,
     right: 20,
     backgroundColor: "rgba(57, 255, 20, 0.15)",
