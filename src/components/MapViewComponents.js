@@ -102,16 +102,21 @@ const MapViewComponent = forwardRef(
         projection: projectionOnRoute(haven.latlng),
         distanceFromRoute: distanceToRoute(haven.latlng),
       }))
-      .filter(({ projection }) => projection > 0.1 && projection < 0.9); // Only mid-route spots
+      // Keep spots that are ahead of origin (0.0) and before destination (1.0)
+      .filter(({ projection }) => projection > 0.05 && projection < 0.95);
 
-    const bestSafetyAnchor = useMemo(() => {
-      if (forwardHavens.length === 0) return [];
+    const structuredSafeRouteWaypoints = useMemo(() => {
+      if (!destination || forwardHavens.length === 0) return [];
 
-      const sorted = [...forwardHavens].sort(
-        (a, b) => a.distanceFromRoute - b.distanceFromRoute,
+      return (
+        [...forwardHavens]
+          // Filter out safe spots too far off-route (e.g. further than 1.5 km away from the baseline corridor)
+          .filter((haven) => haven.distanceFromRoute < 1.5)
+          // CRITICAL: Sort by projection (0 -> 1) so waypoints follow chronological movement
+          .sort((a, b) => a.projection - b.projection)
+          .map((haven) => haven.latlng)
       );
-      return [sorted[0].latlng]; // Pick the most central populated avenue spot
-    }, [forwardHavens]);
+    }, [forwardHavens, destination]);
 
     const routeStrokeWidth = Math.max(3, Math.round(5 * lineScale));
     const routeDashPattern =
@@ -187,14 +192,14 @@ const MapViewComponent = forwardRef(
               <MapViewDirections
                 origin={origin}
                 destination={destination}
-                waypoints={bestSafetyAnchor}
+                waypoints={structuredSafeRouteWaypoints} // Now feeds all sequential points
                 apikey={GOOGLE_MAPS_API_KEY}
                 strokeWidth={routeStrokeWidth}
                 strokeColor="#2196F3"
                 lineCap="round"
                 lineDashPattern={routeDashPattern}
                 mode="WALKING"
-                optimizeWaypoints={true}
+                optimizeWaypoints={false} // False preserves your chronological projection sequencing
                 zIndex={3}
               />
 
@@ -213,7 +218,7 @@ const MapViewComponent = forwardRef(
             </>
           )}
 
-          {forwardHavens.slice(0, 5).map((haven) => (
+          {safeHavens.map((haven) => (
             <Marker
               key={haven.id}
               coordinate={haven.latlng}
