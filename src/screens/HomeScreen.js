@@ -33,6 +33,7 @@ const HomeScreen = () => {
     latitude: 15.4828,
     longitude: 120.9749,
   });
+  const [userHeading, setUserHeading] = useState(0);
 
   const handleSetDestination = () => {
     setDestination({ latitude: 15.4716, longitude: 120.9822 });
@@ -77,6 +78,7 @@ const HomeScreen = () => {
 
   useEffect(() => {
     let locationSubscription;
+    let headingSubscription;
 
     const startTracking = async () => {
       // Request background/foreground permissions
@@ -101,9 +103,9 @@ const HomeScreen = () => {
       // Subscribe to real-time position updates
       locationSubscription = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 2, // Updates every 2 meters
-          timeInterval: 2000, // Or every 2 seconds
+          accuracy: Location.Accuracy.Balanced,
+          distanceInterval: 5, // Increased to 5 meters to reduce micro-jitter
+          timeInterval: 4000, // Reduced frequency to smooth out updates
         },
         (location) => {
           setUserLocation({
@@ -112,6 +114,23 @@ const HomeScreen = () => {
           });
         },
       );
+
+      // Subscribe to device heading updates for the navigation cone
+      headingSubscription = await Location.watchHeadingAsync((headingObj) => {
+        const newHeading = headingObj.trueHeading !== -1 ? headingObj.trueHeading : headingObj.magHeading;
+        
+        setUserHeading((prevHeading) => {
+          // Calculate the shortest path difference to handle 359 -> 1 wrap-around
+          let diff = Math.abs(newHeading - prevHeading);
+          if (diff > 180) diff = 360 - diff;
+          
+          // Only apply update if the device turned more than 3 degrees (filters out micro-jitter)
+          if (diff > 3) {
+            return newHeading;
+          }
+          return prevHeading;
+        });
+      });
     };
 
     startTracking();
@@ -120,6 +139,9 @@ const HomeScreen = () => {
     return () => {
       if (locationSubscription) {
         locationSubscription.remove();
+      }
+      if (headingSubscription) {
+        headingSubscription.remove();
       }
     };
   }, []);
@@ -132,6 +154,7 @@ const HomeScreen = () => {
           threatPins={threatPins}
           destination={destination}
           userLocation={userLocation}
+          userHeading={userHeading}
         />
 
         {/* Minimal Search Bar */}

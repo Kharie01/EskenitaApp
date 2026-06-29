@@ -2,6 +2,7 @@ import React, { useState, forwardRef } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
+import Svg, { Defs, RadialGradient, Stop, Path } from "react-native-svg";
 import mapStyle from "../theme/mapStyle.json";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -45,7 +46,7 @@ const getDottedCoordinates = (coordinates, intervalMeters) => {
   return dots;
 };
 
-const MapViewComponent = forwardRef(({ threatPins, destination, userLocation }, ref) => {
+const MapViewComponent = forwardRef(({ threatPins, destination, userLocation, userHeading }, ref) => {
   const [lineScale, setLineScale] = useState(1);
   const [iosSafeRouteCoords, setIosSafeRouteCoords] = useState([]);
   const [iosAltRouteCoords, setIosAltRouteCoords] = useState([]);
@@ -144,10 +145,24 @@ const MapViewComponent = forwardRef(({ threatPins, destination, userLocation }, 
           setLineScale(Math.min(Math.max(newScale, 0.5), 3));
         }}
       >
-        {/* iOS Fixed Custom Pin View */}
-        <Marker coordinate={origin} title="Current Location">
-          <View style={styles.customMarker}>
-            <Text style={{ fontSize: 24 }}>👤</Text>
+        {/* User Location Marker */}
+        <Marker coordinate={origin} title="Current Location" anchor={{ x: 0.5, y: 0.5 }}>
+          <View style={styles.userMarkerContainer}>
+            {/* The Directional Cone */}
+            <View style={[styles.coneWrapper, { transform: [{ rotate: `${userHeading || 0}deg` }] }]}>
+              <Svg height="100" width="100">
+                <Defs>
+                  <RadialGradient id="coneGrad" cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
+                    <Stop offset="0" stopColor="#1A73E8" stopOpacity="0.5" />
+                    <Stop offset="1" stopColor="#1A73E8" stopOpacity="0" />
+                  </RadialGradient>
+                </Defs>
+                <Path d="M 50,50 L 20,10 Q 50,-5 80,10 Z" fill="url(#coneGrad)" />
+              </Svg>
+            </View>
+
+            {/* The Solid Blue Dot */}
+            <View style={styles.userLocationDot} />
           </View>
         </Marker>
 
@@ -222,10 +237,32 @@ const MapViewComponent = forwardRef(({ threatPins, destination, userLocation }, 
 const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFillObject },
   map: { ...StyleSheet.absoluteFillObject },
-  customMarker: {
+  userMarkerContainer: {
+    width: 100,
+    height: 100,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
+  },
+  coneWrapper: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  userLocationDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#1A73E8",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 2,
   },
 });
 
