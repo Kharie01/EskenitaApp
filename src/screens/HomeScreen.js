@@ -1,6 +1,6 @@
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import * as Location from "expo-location";
-import { Link, Navigation, Search, Timer, TriangleAlert } from "lucide-react-native";
+import { Link, Navigation, Timer, TriangleAlert } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -75,7 +75,7 @@ const HomeScreen = () => {
             longitude: userLocation.longitude,
           },
         },
-        { duration: 1000 }
+        { duration: 1000 },
       );
     }
   };
@@ -107,8 +107,8 @@ const HomeScreen = () => {
       locationSubscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          distanceInterval: 2, // Updates every 2 meters
-          timeInterval: 2000, // Or every 2 seconds
+          distanceInterval: 1, // Updates every 2 meters
+          timeInterval: 1000, // Or every 2 seconds
         },
         (location) => {
           setUserLocation({
@@ -153,6 +153,7 @@ const HomeScreen = () => {
                   latitude: details.geometry.location.lat,
                   longitude: details.geometry.location.lng,
                 });
+                googlePlacesRef.current?.blur();
               }
             }}
             onFail={(error) => {
@@ -163,14 +164,16 @@ const HomeScreen = () => {
             query={{
               key: GOOGLE_MAPS_API_KEY,
               language: "en",
+              components: "country:ph",
               location: `${userLocation.latitude},${userLocation.longitude}`,
-              radius: "20000", // Favors local results near the user
+              radius: "10000",
+              strictbounds: true,
             }}
             styles={{
               container: { flex: 1 },
               textInputContainer: styles.textInputContainer,
               textInput: styles.textInput,
-              listView: styles.listView,
+              listView: destination ? { display: "none" } : styles.listView,
               row: styles.searchRow,
               description: styles.searchDescription,
             }}
@@ -192,8 +195,16 @@ const HomeScreen = () => {
         />
 
         {/* Recenter Map Button */}
-        <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
-          <Navigation size={24} color="#FFFFFF" fill="#FFFFFF" style={{ marginRight: 2, marginTop: 2 }} />
+        <TouchableOpacity
+          style={styles.recenterButton}
+          onPress={handleRecenter}
+        >
+          <Navigation
+            size={24}
+            color="#FFFFFF"
+            fill="#FFFFFF"
+            style={{ marginRight: 2, marginTop: 2 }}
+          />
         </TouchableOpacity>
 
         {/* Modern Toolbar Component on Bottom Layer */}
@@ -366,7 +377,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   toolbarIcon: { fontSize: 24, marginBottom: 1 },
-  toolbarLabel: { fontSize: 10, color: "#333", fontWeight: "500", textAlign: "center" },
+  toolbarLabel: {
+    fontSize: 10,
+    color: "#333",
+    fontWeight: "500",
+    textAlign: "center",
+  },
   timerOverlayContainer: {
     position: "absolute",
     bottom: 120, // Adjusted for smaller toolbar height
