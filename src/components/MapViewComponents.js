@@ -1,12 +1,56 @@
-import { StyleSheet, Text, View } from "react-native";
+import React, { useState, forwardRef } from "react";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
+import Svg, { Defs, RadialGradient, Stop, Path } from "react-native-svg";
 import mapStyle from "../theme/mapStyle.json";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-const MapViewComponent = ({ threatPins, destination }) => {
-  const origin = { latitude: 15.4828, longitude: 120.9749 }; // Near NEUST
+const getDistance = (coord1, coord2) => {
+  const R = 6371e3; // metres
+  const lat1 = (coord1.latitude * Math.PI) / 180;
+  const lat2 = (coord2.latitude * Math.PI) / 180;
+  const dLat = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
+  const dLon = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const getDottedCoordinates = (coordinates, intervalMeters) => {
+  if (!coordinates || coordinates.length < 2 || intervalMeters <= 0) return [];
+  const dots = [];
+  let leftover = 0;
+
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const start = coordinates[i];
+    const end = coordinates[i + 1];
+    const segmentLength = getDistance(start, end);
+
+    let distanceToNextDot = intervalMeters - leftover;
+
+    while (distanceToNextDot <= segmentLength) {
+      const ratio = distanceToNextDot / segmentLength;
+      const lat = start.latitude + (end.latitude - start.latitude) * ratio;
+      const lng = start.longitude + (end.longitude - start.longitude) * ratio;
+      dots.push({ latitude: lat, longitude: lng });
+      distanceToNextDot += intervalMeters;
+    }
+
+    leftover = segmentLength - (distanceToNextDot - intervalMeters);
+  }
+  return dots;
+};
+
+const MapViewComponent = forwardRef(({ threatPins, destination, userLocation, userHeading }, ref) => {
+  const [lineScale, setLineScale] = useState(1);
+  const [iosSafeRouteCoords, setIosSafeRouteCoords] = useState([]);
+  const [iosAltRouteCoords, setIosAltRouteCoords] = useState([]);
+  const origin = userLocation || { latitude: 15.4828, longitude: 120.9749 }; // Near NEUST
 
   const safeHavens = [
     {
@@ -29,11 +73,11 @@ const MapViewComponent = ({ threatPins, destination }) => {
   const toRad = (value) => (value * Math.PI) / 180;
   const routeVector = destination
     ? {
-        x:
-          (destination.longitude - origin.longitude) *
-          Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
-        y: destination.latitude - origin.latitude,
-      }
+      x:
+        (destination.longitude - origin.longitude) *
+        Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
+      y: destination.latitude - origin.latitude,
+    }
     : { x: 0, y: 0 };
 
   const projectionOnRoute = (point) => {
@@ -78,9 +122,15 @@ const MapViewComponent = ({ threatPins, destination }) => {
 
   const safeRouteWaypoints = filteredSafeHavens.map((haven) => haven.latlng);
 
+  // Base width scaled by zoom level. Size is back to medium.
+  const routeStrokeWidth = Math.max(3, Math.round(5 * lineScale));
+  // Gap between squared dots scales with their size. Multiplier increased to 10 to drastically reduce the amount of dots.
+  const routeDashPattern = Platform.OS === "ios" ? [routeStrokeWidth, routeStrokeWidth * 10] : [0, routeStrokeWidth * 10];
+
   return (
     <View style={styles.container}>
       <MapView
+        ref={ref}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         customMapStyle={mapStyle}
@@ -90,11 +140,29 @@ const MapViewComponent = ({ threatPins, destination }) => {
           latitudeDelta: 0.03,
           longitudeDelta: 0.03,
         }}
+        onRegionChangeComplete={(region) => {
+          const newScale = 0.03 / region.latitudeDelta;
+          setLineScale(Math.min(Math.max(newScale, 0.5), 3));
+        }}
       >
-        {/* iOS Fixed Custom Pin View */}
-        <Marker coordinate={origin} title="Current Location">
-          <View style={styles.customMarker}>
-            <Text style={{ fontSize: 24 }}>👤</Text>
+        {/* User Location Marker */}
+        <Marker coordinate={origin} title="Current Location" anchor={{ x: 0.5, y: 0.5 }}>
+          <View style={styles.userMarkerContainer}>
+            {/* The Directional Cone */}
+            <View style={[styles.coneWrapper, { transform: [{ rotate: `${userHeading || 0}deg` }] }]}>
+              <Svg height="100" width="100">
+                <Defs>
+                  <RadialGradient id="coneGrad" cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
+                    <Stop offset="0" stopColor="#1A73E8" stopOpacity="0.5" />
+                    <Stop offset="1" stopColor="#1A73E8" stopOpacity="0" />
+                  </RadialGradient>
+                </Defs>
+                <Path d="M 50,50 L 20,10 Q 50,-5 80,10 Z" fill="url(#coneGrad)" />
+              </Svg>
+            </View>
+
+            {/* The Solid Blue Dot */}
+            <View style={styles.userLocationDot} />
           </View>
         </Marker>
 
@@ -111,8 +179,10 @@ const MapViewComponent = ({ threatPins, destination }) => {
               destination={destination}
               waypoints={safeRouteWaypoints}
               apikey={GOOGLE_MAPS_API_KEY}
-              strokeWidth={6}
-              strokeColor="#00FF66" // Using standard explicit hex block for identical rendering
+              strokeWidth={routeStrokeWidth}
+              strokeColor="#2196F3"
+              lineCap="round"
+              lineDashPattern={routeDashPattern}
               mode="DRIVING"
               optimizeWaypoints={false}
               zIndex={3}
@@ -122,13 +192,16 @@ const MapViewComponent = ({ threatPins, destination }) => {
               origin={origin}
               destination={destination}
               apikey={GOOGLE_MAPS_API_KEY}
-              strokeWidth={4}
-              strokeColor="#555555"
-              lineDashPattern={[10, 8]}
+              strokeWidth={routeStrokeWidth}
+              strokeColor="#888888"
+              lineCap="round"
+              lineDashPattern={routeDashPattern}
               mode="DRIVING"
               optimizeWaypoints={false}
               zIndex={2}
             />
+
+
           </>
         )}
 
@@ -159,15 +232,37 @@ const MapViewComponent = ({ threatPins, destination }) => {
       </MapView>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFillObject },
   map: { ...StyleSheet.absoluteFillObject },
-  customMarker: {
+  userMarkerContainer: {
+    width: 100,
+    height: 100,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
+  },
+  coneWrapper: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  userLocationDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#1A73E8",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 2,
   },
 });
 
