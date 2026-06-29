@@ -1,6 +1,7 @@
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import * as Location from "expo-location";
 import { Link, Search, Timer, TriangleAlert } from "lucide-react-native";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,6 +27,11 @@ const HomeScreen = () => {
   const snapPoints = useMemo(() => {
     return [insets.bottom > 0 ? "12%" : "10%"];
   }, [insets.bottom]);
+
+  const [userLocation, setUserLocation] = useState({
+    latitude: 15.4828,
+    longitude: 120.9749,
+  });
 
   const handleSetDestination = () => {
     setDestination({ latitude: 15.4716, longitude: 120.9822 });
@@ -54,10 +60,63 @@ const HomeScreen = () => {
     ]);
   };
 
+  useEffect(() => {
+    let locationSubscription;
+
+    const startTracking = async () => {
+      // Request background/foreground permissions
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Location permissions are required for real-time tracking.",
+        );
+        return;
+      }
+
+      // Get initial position quickly
+      let initialLoc = await Location.getLastKnownPositionAsync({});
+      if (initialLoc) {
+        setUserLocation({
+          latitude: initialLoc.coords.latitude,
+          longitude: initialLoc.coords.longitude,
+        });
+      }
+
+      // Subscribe to real-time position updates
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: 2, // Updates every 2 meters
+          timeInterval: 2000, // Or every 2 seconds
+        },
+        (location) => {
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        },
+      );
+    };
+
+    startTracking();
+
+    // Clean up subscription on unmount
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, isSosTriggered && styles.sosBackground]}>
-        <MapViewComponent threatPins={threatPins} destination={destination} />
+        <MapViewComponent
+          threatPins={threatPins}
+          destination={destination}
+          userLocation={userLocation}
+        />
 
         {/* Minimal Search Bar */}
         <View style={styles.searchContainer}>
