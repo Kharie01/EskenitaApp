@@ -1,14 +1,12 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
-import { colors } from "../theme/colors";
 import mapStyle from "../theme/mapStyle.json";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-const MapViewComponent = ({ threatPins }) => {
+const MapViewComponent = ({ threatPins, destination }) => {
   const origin = { latitude: 15.4828, longitude: 120.9749 }; // Near NEUST
-  const destination = { latitude: 15.4716, longitude: 120.9822 }; // SM City Area
 
   const safeHavens = [
     {
@@ -29,43 +27,30 @@ const MapViewComponent = ({ threatPins }) => {
   ];
 
   const toRad = (value) => (value * Math.PI) / 180;
-
-  const distance = (a, b) => {
-    const R = 6371; // Earth radius in km
-    const dLat = toRad(b.latitude - a.latitude);
-    const dLon = toRad(b.longitude - a.longitude);
-    const lat1 = toRad(a.latitude);
-    const lat2 = toRad(b.latitude);
-
-    const sinDLat = Math.sin(dLat / 2);
-    const sinDLon = Math.sin(dLon / 2);
-    const h =
-      sinDLat * sinDLat + sinDLon * sinDLon * Math.cos(lat1) * Math.cos(lat2);
-
-    return 2 * R * Math.asin(Math.sqrt(h));
-  };
-
-  const routeVector = {
-    x:
-      (destination.longitude - origin.longitude) *
-      Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
-    y: destination.latitude - origin.latitude,
-  };
+  const routeVector = destination
+    ? {
+        x:
+          (destination.longitude - origin.longitude) *
+          Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
+        y: destination.latitude - origin.latitude,
+      }
+    : { x: 0, y: 0 };
 
   const projectionOnRoute = (point) => {
+    if (!destination) return -1;
     const pointVec = {
       x:
         (point.longitude - origin.longitude) *
         Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
       y: point.latitude - origin.latitude,
     };
-
     const dot = pointVec.x * routeVector.x + pointVec.y * routeVector.y;
     const lenSq = routeVector.x * routeVector.x + routeVector.y * routeVector.y;
     return lenSq === 0 ? 0 : dot / lenSq;
   };
 
   const distanceToRoute = (point) => {
+    if (!destination) return 999;
     const pointVec = {
       x:
         (point.longitude - origin.longitude) *
@@ -73,10 +58,7 @@ const MapViewComponent = ({ threatPins }) => {
       y: point.latitude - origin.latitude,
     };
     const proj = projectionOnRoute(point);
-    const closest = {
-      x: routeVector.x * proj,
-      y: routeVector.y * proj,
-    };
+    const closest = { x: routeVector.x * proj, y: routeVector.y * proj };
     const dx = pointVec.x - closest.x;
     const dy = pointVec.y - closest.y;
     return Math.sqrt(dx * dx + dy * dy) * 111.32; // km per degree
@@ -103,74 +85,76 @@ const MapViewComponent = ({ threatPins }) => {
         style={styles.map}
         customMapStyle={mapStyle}
         initialRegion={{
-          latitude: 15.477,
-          longitude: 120.979,
+          latitude: origin.latitude,
+          longitude: origin.longitude,
           latitudeDelta: 0.03,
           longitudeDelta: 0.03,
         }}
       >
-        <Marker
-          coordinate={origin}
-          title="Start"
-          pinColor={colors.textPrimary}
-        />
-        <Marker
-          coordinate={destination}
-          title="Destination"
-          pinColor={colors.textPrimary}
-        />
+        {/* iOS Fixed Custom Pin View */}
+        <Marker coordinate={origin} title="Current Location">
+          <View style={styles.customMarker}>
+            <Text style={{ fontSize: 24 }}>👤</Text>
+          </View>
+        </Marker>
 
-        {/* Route B - Eskenita Safe (Uses actual Google road path via waypoints) */}
-        <MapViewDirections
-          origin={origin}
-          destination={destination}
-          waypoints={safeRouteWaypoints}
-          apikey={GOOGLE_MAPS_API_KEY}
-          strokeWidth={6}
-          strokeColor={colors.neonGreen}
-          mode="DRIVING"
-          optimizeWaypoints={false}
-          zIndex={1}
-          onError={(errorMessage) =>
-            console.warn("Directions error: ", errorMessage)
-          }
-        />
+        {destination && (
+          <>
+            <Marker coordinate={destination} title="Destination">
+              <View style={styles.customMarker}>
+                <Text style={{ fontSize: 24 }}>📍</Text>
+              </View>
+            </Marker>
 
-        {/* Route A - Fastest (Uses actual Google road path) */}
-        <MapViewDirections
-          origin={origin}
-          destination={destination}
-          apikey={GOOGLE_MAPS_API_KEY}
-          strokeWidth={4}
-          strokeColor={colors.routeFastest}
-          lineDashPattern={[10, 8]}
-          mode="DRIVING"
-          optimizeWaypoints={false}
-          zIndex={2}
-          onError={(errorMessage) =>
-            console.warn("Directions error: ", errorMessage)
-          }
-        />
+            <MapViewDirections
+              origin={origin}
+              destination={destination}
+              waypoints={safeRouteWaypoints}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={6}
+              strokeColor="#00FF66" // Using standard explicit hex block for identical rendering
+              mode="DRIVING"
+              optimizeWaypoints={false}
+              zIndex={3}
+            />
 
-        {/* Safe Havens near the route before the destination */}
-        {filteredSafeHavens.map((haven) => (
-          <Marker
-            key={haven.id}
-            coordinate={haven.latlng}
-            title={haven.title}
-            description="Safe Haven"
-            pinColor={colors.neonGreen}
-          />
-        ))}
+            <MapViewDirections
+              origin={origin}
+              destination={destination}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={4}
+              strokeColor="#555555"
+              lineDashPattern={[10, 8]}
+              mode="DRIVING"
+              optimizeWaypoints={false}
+              zIndex={2}
+            />
+          </>
+        )}
 
-        {/* AI-Generated Threat Pins */}
+        {destination &&
+          filteredSafeHavens.map((haven) => (
+            <Marker
+              key={haven.id}
+              coordinate={haven.latlng}
+              title={haven.title}
+            >
+              <View style={styles.customMarker}>
+                <Text style={{ fontSize: 22 }}>🟢</Text>
+              </View>
+            </Marker>
+          ))}
+
         {threatPins.map((pin, index) => (
           <Marker
             key={`threat-${index}`}
             coordinate={pin.coordinates}
             title="Threat Detected"
-            pinColor={colors.neonRed}
-          />
+          >
+            <View style={styles.customMarker}>
+              <Text style={{ fontSize: 22 }}>🚨</Text>
+            </View>
+          </Marker>
         ))}
       </MapView>
     </View>
@@ -180,6 +164,11 @@ const MapViewComponent = ({ threatPins }) => {
 const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFillObject },
   map: { ...StyleSheet.absoluteFillObject },
+  customMarker: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
 });
 
 export default MapViewComponent;

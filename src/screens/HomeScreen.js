@@ -1,5 +1,7 @@
-import { useState } from "react";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import React, { useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import DeadManSwitchTimer from "../components/DeadManSwitchTimer";
 import GuardianBanner from "../components/GuardianBanner";
 import MapViewComponent from "../components/MapViewComponents";
@@ -9,16 +11,26 @@ import { colors } from "../theme/colors";
 
 const HomeScreen = () => {
   const [threatPins, setThreatPins] = useState([]);
+  const [destination, setDestination] = useState(null);
+
   const [isGuardianActive, setIsGuardianActive] = useState(false);
   const [isDeadZoneActive, setIsDeadZoneActive] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSosTriggered, setIsSosTriggered] = useState(false);
 
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ["14%"], []); // Set low height to keep it minimal
+
+  const handleSetDestination = () => {
+    setDestination({ latitude: 15.4716, longitude: 120.9822 });
+  };
+
+  const handleClearRoute = () => {
+    setDestination(null);
+  };
+
   const handleShareGuardian = () => {
-    Alert.alert(
-      "Link Copied!",
-      "Your live location link has been copied. Sending to emergency contacts...",
-    );
+    Alert.alert("Link Copied!", "Live location link copied to clipboard.");
     setIsGuardianActive(true);
   };
 
@@ -37,76 +49,166 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={[styles.container, isSosTriggered && styles.sosBackground]}>
-      <MapViewComponent threatPins={threatPins} />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, isSosTriggered && styles.sosBackground]}>
+        <MapViewComponent threatPins={threatPins} destination={destination} />
 
-      <GuardianBanner
-        isActive={isGuardianActive}
-        onCancel={() => setIsGuardianActive(false)}
-      />
+        {/* Minimal Search Bar */}
+        <View style={styles.searchContainer}>
+          <TouchableOpacity
+            style={styles.searchBar}
+            onPress={handleSetDestination}
+          >
+            <Text style={styles.searchIcon}>🔍</Text>
+            <Text style={styles.searchText}>
+              {destination ? "Routing to Destination..." : "Search here"}
+            </Text>
+          </TouchableOpacity>
+          {destination && (
+            <TouchableOpacity
+              style={styles.clearBtn}
+              onPress={handleClearRoute}
+            >
+              <Text style={styles.clearText}>✖</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-      {!isGuardianActive && !isDeadZoneActive && (
-        <TouchableOpacity style={styles.shareBtn} onPress={handleShareGuardian}>
-          <Text style={styles.shareText}>Share Guardian Link</Text>
-        </TouchableOpacity>
-      )}
+        <GuardianBanner
+          isActive={isGuardianActive}
+          onCancel={() => setIsGuardianActive(false)}
+        />
 
-      <View style={styles.bottomControls}>
-        <DeadManSwitchTimer
-          isActive={isDeadZoneActive}
-          onActivate={() => setIsDeadZoneActive(true)}
-          onCancel={() => setIsDeadZoneActive(false)}
-          onTriggerSOS={handleSOS}
+        {/* Modern Toolbar Component on Bottom Layer */}
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={0}
+          snapPoints={snapPoints}
+          backgroundStyle={styles.sheetBackground}
+          handleIndicatorStyle={{ display: "none" }} // Completely flat minimalist design
+        >
+          <BottomSheetView style={styles.toolbarContent}>
+            {/* Action Item 1 */}
+            <TouchableOpacity
+              style={styles.toolbarItem}
+              onPress={() => setIsModalVisible(true)}
+            >
+              <Text style={styles.toolbarIcon}>⚠️</Text>
+              <Text style={styles.toolbarLabel}>Report</Text>
+            </TouchableOpacity>
+
+            {/* Action Item 2 */}
+            <TouchableOpacity
+              style={styles.toolbarItem}
+              onPress={handleShareGuardian}
+            >
+              <Text style={styles.toolbarIcon}>🔗</Text>
+              <Text style={styles.toolbarLabel}>Share Link</Text>
+            </TouchableOpacity>
+
+            {/* Action Item 3 - Dead Man Switch Toggle */}
+            <TouchableOpacity
+              style={[
+                styles.toolbarItem,
+                isDeadZoneActive && styles.activeToolbarItem,
+              ]}
+              onPress={() => setIsDeadZoneActive(!isDeadZoneActive)}
+            >
+              <Text style={styles.toolbarIcon}>⏱️</Text>
+              <Text style={styles.toolbarLabel}>DeadZone</Text>
+            </TouchableOpacity>
+          </BottomSheetView>
+        </BottomSheet>
+
+        {/* Hidden Engine Component processing DeadZone logic */}
+        <View style={{ height: 0, width: 0 }}>
+          <DeadManSwitchTimer
+            isActive={isDeadZoneActive}
+            onActivate={() => setIsDeadZoneActive(true)}
+            onCancel={() => setIsDeadZoneActive(false)}
+            onTriggerSOS={handleSOS}
+          />
+        </View>
+
+        <ThreatReportModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onSubmit={handleReportThreat}
         />
       </View>
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setIsModalVisible(true)}
-      >
-        <Text style={styles.fabIcon}>⚠️</Text>
-      </TouchableOpacity>
-
-      <ThreatReportModal
-        visible={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-        onSubmit={handleReportThreat}
-      />
-    </View>
+    </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   sosBackground: { backgroundColor: "rgba(255,0,0,0.4)" },
-  shareBtn: {
+
+  // Custom Minimal Layout
+  searchContainer: {
     position: "absolute",
     top: 60,
-    alignSelf: "center",
-    backgroundColor: colors.surface,
-    padding: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.neonGreen,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 10,
   },
-  shareText: { color: colors.neonGreen, fontWeight: "bold" },
-  bottomControls: { position: "absolute", bottom: 30, left: 20, right: 90 },
-  fab: {
-    position: "absolute",
-    bottom: 30,
-    right: 20,
-    backgroundColor: colors.neonOrange,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  searchIcon: { fontSize: 18, marginRight: 10, color: "#888" },
+  searchText: { color: "#666", fontSize: 16 },
+  clearBtn: {
+    marginLeft: 10,
+    backgroundColor: "#FFFFFF",
+    height: 48,
+    width: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: colors.neonOrange,
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  fabIcon: { fontSize: 24 },
+  clearText: { color: "#333", fontWeight: "bold" },
+
+  // Bottom Icon Toolbar Styles
+  sheetBackground: {
+    backgroundColor: "rgba(245, 245, 247, 0.94)", // Premium glassmorphism layout
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  toolbarContent: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  toolbarItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
+    width: 80,
+  },
+  activeToolbarItem: {
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderRadius: 12,
+  },
+  toolbarIcon: { fontSize: 24, marginBottom: 4 },
+  toolbarLabel: { fontSize: 12, color: "#333", fontWeight: "500" },
 });
 
 export default HomeScreen;
