@@ -3,7 +3,6 @@ import { StyleSheet, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
-import mapStyle from "../theme/mapStyle.json";
 import CustomMarker from "./CustomMarker";
 import MarkerDetailModal from "./MarkerDetailModal";
 
@@ -61,6 +60,7 @@ const MapViewComponent = forwardRef(
       onRouteStatsUpdate,
       isNavigating = false,
       onRouteStepsUpdate,
+      colors,
     },
     ref,
   ) => {
@@ -243,7 +243,7 @@ const MapViewComponent = forwardRef(
           ref={ref}
           provider={PROVIDER_GOOGLE}
           style={styles.map}
-          customMapStyle={mapStyle}
+          customMapStyle={colors?.mapStyle}
           initialRegion={{
             latitude: origin.latitude,
             longitude: origin.longitude,
@@ -278,8 +278,16 @@ const MapViewComponent = forwardRef(
                       r="50"
                       gradientUnits="userSpaceOnUse"
                     >
-                      <Stop offset="0" stopColor="#1A73E8" stopOpacity="0.5" />
-                      <Stop offset="1" stopColor="#1A73E8" stopOpacity="0" />
+                      <Stop
+                        offset="0"
+                        stopColor={colors?.userConeColor || "#1A73E8"}
+                        stopOpacity="0.5"
+                      />
+                      <Stop
+                        offset="1"
+                        stopColor={colors?.userConeColor || "#1A73E8"}
+                        stopOpacity="0"
+                      />
                     </RadialGradient>
                   </Defs>
                   <Path
@@ -301,8 +309,8 @@ const MapViewComponent = forwardRef(
                   <Svg height="24" width="24">
                     <Path
                       d="M 12,2 L 22,20 L 2,20 Z"
-                      fill="#00CED1"
-                      stroke="#FFFFFF"
+                      fill={colors?.triangleColor || "#00CED1"}
+                      stroke={colors?.textPrimary || "#FFFFFF"}
                       strokeWidth="2"
                       strokeLinejoin="round"
                     />
@@ -321,7 +329,7 @@ const MapViewComponent = forwardRef(
                   setSelectedMarker({
                     type: "destination",
                     title: "Destination",
-                    color: "#FF9900",
+                    color: colors?.neonOrange || "#FF9900",
                     description: "Your selected destination",
                   });
                   setIsMarkerModalVisible(true);
@@ -342,8 +350,8 @@ const MapViewComponent = forwardRef(
                 }
                 strokeColor={
                   selectedRouteType === "dangerous"
-                    ? "#8B5CF6"
-                    : "rgba(139, 92, 246, 0.45)"
+                    ? colors?.routeDangerous || "#8B5CF6"
+                    : colors?.routeDangerousLight || "rgba(139, 92, 246, 0.45)"
                 }
                 lineCap="round"
                 lineDashPattern={[0, 0]}
@@ -371,8 +379,8 @@ const MapViewComponent = forwardRef(
                 }
                 strokeColor={
                   selectedRouteType === "safe"
-                    ? "#28A745"
-                    : "rgba(40, 167, 69, 0.45)"
+                    ? colors?.routeSafe || "#28A745"
+                    : colors?.routeSafeLight || "rgba(40, 167, 69, 0.45)"
                 }
                 lineCap="round"
                 lineDashPattern={[0, 0]}
@@ -403,8 +411,8 @@ const MapViewComponent = forwardRef(
                 }
                 strokeColor={
                   selectedRouteType === "safeAlt"
-                    ? "#17A2B8"
-                    : "rgba(23, 162, 184, 0.45)"
+                    ? colors?.routeAlt || "#17A2B8"
+                    : colors?.routeAltLight || "rgba(23, 162, 184, 0.45)"
                 }
                 lineCap="round"
                 lineDashPattern={[0, 0]}
