@@ -1,9 +1,23 @@
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 
+const palette = {
+  overlay: "rgba(0, 0, 0, 0.6)",
+  sheetBg: "#0F1115",
+  cardBg: "#1A1D24",
+  cardBorder: "#2A2E37",
+  selectedBorder: "#FF7A1A",
+  chipBg: "#15171D",
+  chipBorder: "#272B33",
+  accent: "#FF7A1A",
+  textPrimary: "#F5F6F8",
+  textSecondary: "#A7ACB5",
+  textMuted: "#6E727B",
+};
+
 const ICON_OPTIONS = [
-  { id: "circle", label: "Circle", color: "#1A73E8" },
-  { id: "triangle", label: "Triangle", color: "#00CED1" },
+  { id: "circle", label: "Circle" },
+  { id: "triangle", label: "Triangle", image: require("../../assets/user-icons/triangle-icon.png") },
 ];
 
 const UserIconPicker = ({ visible, onClose, onSelect, currentIcon }) => {
@@ -24,16 +38,25 @@ const UserIconPicker = ({ visible, onClose, onSelect, currentIcon }) => {
                   currentIcon === option.id && styles.selectedIcon,
                 ]}
                 onPress={() => onSelect(option.id)}
+                activeOpacity={0.85}
               >
-                <View
-                  style={[
-                    styles.iconPreview,
-                    { backgroundColor: option.color },
-                    option.id === "triangle" && styles.triangleIcon,
-                    option.id === "diamond" && styles.diamondIcon,
-                    option.id === "star" && styles.starIcon,
-                  ]}
-                />
+                {option.id === "circle" ? (
+                  <View
+                    style={[
+                      styles.circlePreview,
+                      currentIcon === option.id && styles.selectedIconPreview,
+                    ]}
+                  />
+                ) : (
+                  <Image
+                    source={option.image}
+                    style={[
+                      styles.iconPreview,
+                      currentIcon === option.id && styles.selectedIconPreview,
+                    ]}
+                    resizeMode="contain"
+                  />
+                )}
                 <Text
                   numberOfLines={1}
                   ellipsizeMode="tail"
