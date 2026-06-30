@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { colors } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
 
 const formatDuration = (minutes) => {
   if (!minutes && minutes !== 0) return "--";
@@ -39,6 +39,9 @@ const RouteComparisonPanel = ({
   guardianStatus = null,
 }) => {
   const [viewMode, setViewMode] = useState("map");
+
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   if (!visible) return null;
 
@@ -91,6 +94,8 @@ const RouteComparisonPanel = ({
     }
     onStartNavigation();
   };
+
+  if (!visible) return null;
 
   return (
     <View style={styles.container}>
@@ -300,241 +305,242 @@ const RouteComparisonPanel = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    bottom: 90,
-    left: 0,
-    right: 0,
-    zIndex: 15,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    overflow: "hidden",
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.card,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(46, 204, 113, 0.35)",
-  },
-  statusRowAlert: {
-    borderBottomColor: "rgba(255, 82, 82, 0.4)",
-  },
-  statusText: {
-    flex: 1,
-    color: colors.neonGreen,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  statusTextAlert: {
-    color: colors.neonRed,
-  },
-  statusCancelBtn: {
-    backgroundColor: colors.surfaceLight,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
-  },
-  statusCancelText: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  tabBar: {
-    flexDirection: "row",
-    backgroundColor: colors.card,
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    gap: 4,
-  },
-  tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  tabActive: {
-    backgroundColor: colors.surface,
-  },
-  tabText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  tabTextActive: {
-    color: colors.primary,
-  },
-  listView: {
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    gap: 6,
-  },
-  listItem: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  listItemSelected: {
-    backgroundColor: colors.surfaceLight,
-    borderColor: colors.primary,
-  },
-  listItemBlocked: {
-    opacity: 0.55,
-  },
-  listIndicator: {
-    width: 4,
-    height: 36,
-    borderRadius: 2,
-    marginRight: 12,
-  },
-  listItemContent: {
-    flex: 1,
-  },
-  listItemHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  listItemTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  listItemTitleUnselected: {
-    color: colors.textPrimary,
-  },
-  listItemStats: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  listItemStatsUnselected: {
-    color: colors.textSecondary,
-  },
-  blockedLabel: {
-    fontSize: 12,
-    color: colors.neonRed,
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  blockedLabelUnselected: {
-    color: colors.neonRed,
-  },
-  routeCardsRow: {
-    backgroundColor: colors.card,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  routeCardsContent: {
-    paddingHorizontal: 8,
-    gap: 4,
-    flexDirection: "row",
-  },
-  routeCard: {
-    minWidth: 110,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    position: "relative",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  routeCardSelected: {
-    backgroundColor: colors.surfaceLight,
-    borderColor: colors.primary,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    paddingBottom: 14,
-  },
-  routeCardBlocked: {
-    opacity: 0.5,
-  },
-  lockBadge: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    borderRadius: 8,
-    padding: 2,
-  },
-  routeDuration: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  routeDurationSelected: {
-    color: colors.primary,
-  },
-  routeDurationBlocked: {
-    color: colors.textSecondary,
-  },
-  routeDistance: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  routeDistanceSelected: {
-    color: colors.textSecondary,
-  },
-  routeDistanceBlocked: {
-    color: colors.textSecondary,
-  },
-  selectedIndicator: {
-    position: "absolute",
-    bottom: -1,
-    width: 28,
-    height: 14,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  viaBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  viaText: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  goButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  goButtonText: {
-    color: "#15120F",
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 2,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      position: "absolute",
+      bottom: 90,
+      left: 0,
+      right: 0,
+      zIndex: 15,
+      borderTopLeftRadius: 14,
+      borderTopRightRadius: 14,
+      overflow: "hidden",
+    },
+    statusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: colors.card,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: "rgba(46, 204, 113, 0.35)",
+    },
+    statusRowAlert: {
+      borderBottomColor: "rgba(255, 82, 82, 0.4)",
+    },
+    statusText: {
+      flex: 1,
+      color: colors.neonGreen,
+      fontSize: 13,
+      fontWeight: "700",
+    },
+    statusTextAlert: {
+      color: colors.neonRed,
+    },
+    statusCancelBtn: {
+      backgroundColor: colors.surfaceLight,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 16,
+    },
+    statusCancelText: {
+      color: colors.textPrimary,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    tabBar: {
+      flexDirection: "row",
+      backgroundColor: colors.card,
+      paddingHorizontal: 16,
+      paddingTop: 6,
+      gap: 4,
+    },
+    tab: {
+      paddingVertical: 8,
+      paddingHorizontal: 20,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
+    },
+    tabActive: {
+      backgroundColor: colors.surface,
+    },
+    tabText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    tabTextActive: {
+      color: colors.primary,
+    },
+    listView: {
+      backgroundColor: colors.card,
+      paddingHorizontal: 12,
+      paddingBottom: 8,
+      gap: 6,
+    },
+    listItem: {
+      flexDirection: "row",
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 12,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    listItemSelected: {
+      backgroundColor: colors.surfaceLight,
+      borderColor: colors.primary,
+    },
+    listItemBlocked: {
+      opacity: 0.55,
+    },
+    listIndicator: {
+      width: 4,
+      height: 36,
+      borderRadius: 2,
+      marginRight: 12,
+    },
+    listItemContent: {
+      flex: 1,
+    },
+    listItemHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    listItemTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    listItemTitleUnselected: {
+      color: colors.textPrimary,
+    },
+    listItemStats: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    listItemStatsUnselected: {
+      color: colors.textSecondary,
+    },
+    blockedLabel: {
+      fontSize: 12,
+      color: colors.neonRed,
+      marginTop: 4,
+      fontWeight: "500",
+    },
+    blockedLabelUnselected: {
+      color: colors.neonRed,
+    },
+    routeCardsRow: {
+      backgroundColor: colors.card,
+      paddingTop: 8,
+      paddingBottom: 4,
+    },
+    routeCardsContent: {
+      paddingHorizontal: 8,
+      gap: 4,
+      flexDirection: "row",
+    },
+    routeCard: {
+      minWidth: 110,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+      alignItems: "center",
+      position: "relative",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    routeCardSelected: {
+      backgroundColor: colors.surfaceLight,
+      borderColor: colors.primary,
+      borderTopLeftRadius: 14,
+      borderTopRightRadius: 14,
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0,
+      paddingBottom: 14,
+    },
+    routeCardBlocked: {
+      opacity: 0.5,
+    },
+    lockBadge: {
+      position: "absolute",
+      top: 4,
+      right: 4,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      borderRadius: 8,
+      padding: 2,
+    },
+    routeDuration: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: "700",
+    },
+    routeDurationSelected: {
+      color: colors.primary,
+    },
+    routeDurationBlocked: {
+      color: colors.textSecondary,
+    },
+    routeDistance: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      marginTop: 2,
+    },
+    routeDistanceSelected: {
+      color: colors.textSecondary,
+    },
+    routeDistanceBlocked: {
+      color: colors.textSecondary,
+    },
+    selectedIndicator: {
+      position: "absolute",
+      bottom: -1,
+      width: 28,
+      height: 14,
+      borderBottomLeftRadius: 8,
+      borderBottomRightRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    viaBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    viaText: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: "500",
+    },
+    goButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 16,
+      alignItems: "center",
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    goButtonText: {
+      color: "#15120F",
+      fontSize: 18,
+      fontWeight: "800",
+      letterSpacing: 2,
+    },
+  });
 
 export default RouteComparisonPanel;
