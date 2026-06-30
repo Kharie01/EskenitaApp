@@ -3,7 +3,6 @@ import { Image, Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
-import mapStyle from "../theme/mapStyle.json";
 import CustomMarker from "./CustomMarker";
 import MarkerDetailModal from "./MarkerDetailModal";
 
@@ -86,6 +85,7 @@ const MapViewComponent = forwardRef(
       onRouteStepsUpdate,
       isSelectingDestination = false,
       onMapPress,
+      colors,
     },
     ref,
   ) => {
@@ -160,7 +160,6 @@ const MapViewComponent = forwardRef(
       let bestSpotInWindow = null;
 
       for (const spot of linearCorridorSpots) {
-        // If the spot falls past the current milestone bucket, lock in the best option from the previous window
         while (spot.projection > currentWindowEnd) {
           if (bestSpotInWindow) {
             smoothedWaypoints.push(bestSpotInWindow.latlng);
@@ -169,7 +168,6 @@ const MapViewComponent = forwardRef(
           currentWindowEnd += PROGRESS_WINDOW_STRIDE;
         }
 
-        // Within the current chunk window, find the spot that stays closest to the main road line
         if (
           !bestSpotInWindow ||
           spot.distanceFromRoute < bestSpotInWindow.distanceFromRoute
@@ -185,11 +183,60 @@ const MapViewComponent = forwardRef(
       return smoothedWaypoints;
     }, [forwardHavens, destination]);
 
+    // NEW: Logic to determine alternative safe paths through separate havens
+    const alternativeSafeWaypoints = useMemo(() => {
+      if (!destination || forwardHavens.length === 0) return [];
+      const MAX_DETOUR_THRESHOLD = 0.4; // Slightly higher threshold to find alternate detours
+      const PROGRESS_WINDOW_STRIDE = 0.2;
+
+      const linearCorridorSpots = forwardHavens
+        .filter((haven) => haven.distanceFromRoute <= MAX_DETOUR_THRESHOLD)
+        .sort((a, b) => a.projection - b.projection);
+
+      const primaryIds = new Set(
+        balancedSafeWaypoints.map((w) => `${w.latitude}-${w.longitude}`),
+      );
+      const smoothedWaypoints = [];
+      let currentWindowEnd = PROGRESS_WINDOW_STRIDE;
+      let alternativeSpotInWindow = null;
+
+      for (const spot of linearCorridorSpots) {
+        // Skip Havens already used by the primary safe route to ensure distinct paths
+        if (primaryIds.has(`${spot.latlng.latitude}-${spot.latlng.longitude}`))
+          continue;
+
+        while (spot.projection > currentWindowEnd) {
+          if (alternativeSpotInWindow) {
+            smoothedWaypoints.push(alternativeSpotInWindow.latlng);
+            alternativeSpotInWindow = null;
+          }
+          currentWindowEnd += PROGRESS_WINDOW_STRIDE;
+        }
+
+        if (
+          !alternativeSpotInWindow ||
+          spot.distanceFromRoute < alternativeSpotInWindow.distanceFromRoute
+        ) {
+          alternativeSpotInWindow = spot;
+        }
+      }
+
+      if (alternativeSpotInWindow) {
+        smoothedWaypoints.push(alternativeSpotInWindow.latlng);
+      }
+
+      // Fallback: if no alternative safe havens were found, offset primary to prevent visual duplication
+      if (smoothedWaypoints.length === 0 && balancedSafeWaypoints.length > 0) {
+        return balancedSafeWaypoints.map((w) => ({
+          latitude: w.latitude + 0.0004,
+          longitude: w.longitude + 0.0004,
+        }));
+      }
+
+      return smoothedWaypoints;
+    }, [forwardHavens, destination, balancedSafeWaypoints]);
+
     const routeStrokeWidth = Math.max(3, Math.round(5 * lineScale));
-    const routeDashPattern =
-      Platform.OS === "ios"
-        ? [routeStrokeWidth, routeStrokeWidth * 10]
-        : [0, routeStrokeWidth * 10];
 
     // Auto-fit map to show full route when destination is set
     useEffect(() => {
@@ -222,7 +269,7 @@ const MapViewComponent = forwardRef(
           ref={ref}
           provider={PROVIDER_GOOGLE}
           style={styles.map}
-          customMapStyle={mapStyle}
+          customMapStyle={colors?.mapStyle}
           initialRegion={{
             latitude: origin.latitude,
             longitude: origin.longitude,
@@ -266,8 +313,16 @@ const MapViewComponent = forwardRef(
                       r="50"
                       gradientUnits="userSpaceOnUse"
                     >
-                      <Stop offset="0" stopColor="#1A73E8" stopOpacity="0.5" />
-                      <Stop offset="1" stopColor="#1A73E8" stopOpacity="0" />
+                      <Stop
+                        offset="0"
+                        stopColor={colors?.userConeColor || "#1A73E8"}
+                        stopOpacity="0.5"
+                      />
+                      <Stop
+                        offset="1"
+                        stopColor={colors?.userConeColor || "#1A73E8"}
+                        stopOpacity="0"
+                      />
                     </RadialGradient>
                   </Defs>
                   <Path
@@ -303,7 +358,7 @@ const MapViewComponent = forwardRef(
                   setSelectedMarker({
                     type: "destination",
                     title: "Destination",
-                    color: "#FF9900",
+                    color: colors?.neonOrange || "#FF9900",
                     description: "Your selected destination",
                   });
                   setIsMarkerModalVisible(true);
@@ -312,13 +367,21 @@ const MapViewComponent = forwardRef(
                 <CustomMarker type="destination" title="Destination" />
               </Marker>
 
-              {/* Dangerous route — always visible for comparison, dimmed when not selected */}
+              {/* Dangerous route */}
               <MapViewDirections
                 origin={origin}
                 destination={destination}
                 apikey={GOOGLE_MAPS_API_KEY}
-                strokeWidth={selectedRouteType === "dangerous" ? routeStrokeWidth + 2 : routeStrokeWidth}
-                strokeColor={selectedRouteType === "dangerous" ? "#8B5CF6" : "rgba(139, 92, 246, 0.45)"}
+                strokeWidth={
+                  selectedRouteType === "dangerous"
+                    ? routeStrokeWidth + 2
+                    : routeStrokeWidth
+                }
+                strokeColor={
+                  selectedRouteType === "dangerous"
+                    ? colors?.routeDangerous || "#8B5CF6"
+                    : colors?.routeDangerousLight || "rgba(139, 92, 246, 0.45)"
+                }
                 lineCap="round"
                 lineDashPattern={[0, 0]}
                 mode="WALKING"
@@ -336,14 +399,22 @@ const MapViewComponent = forwardRef(
                 }}
               />
 
-              {/* Safe route — always visible, highlighted when selected */}
+              {/* Safe route */}
               <MapViewDirections
                 origin={origin}
                 destination={destination}
                 waypoints={balancedSafeWaypoints}
                 apikey={GOOGLE_MAPS_API_KEY}
-                strokeWidth={selectedRouteType === "safe" ? routeStrokeWidth + 3 : routeStrokeWidth}
-                strokeColor={selectedRouteType === "safe" ? "#28A745": "rgba(40,167,69,.25)"}
+                strokeWidth={
+                  selectedRouteType === "safe"
+                    ? routeStrokeWidth + 3
+                    : routeStrokeWidth
+                }
+                strokeColor={
+                  selectedRouteType === "safe"
+                    ? colors?.routeSafe || "#28A745"
+                    : colors?.routeSafeLight || "rgba(40, 167, 69, 0.45)"
+                }
                 lineCap="round"
                 lineDashPattern={[0, 0]}
                 mode="WALKING"
@@ -355,7 +426,41 @@ const MapViewComponent = forwardRef(
                     duration: result.duration,
                     distance: result.distance,
                   });
-                  onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
+                  if (selectedRouteType === "safe") {
+                    onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
+                  }
+                }}
+              />
+
+              {/* NEW: Alternative Safe Route */}
+              <MapViewDirections
+                origin={origin}
+                destination={destination}
+                waypoints={alternativeSafeWaypoints}
+                apikey={GOOGLE_MAPS_API_KEY}
+                strokeWidth={
+                  selectedRouteType === "safeAlt"
+                    ? routeStrokeWidth + 3
+                    : routeStrokeWidth
+                }
+                strokeColor={
+                  selectedRouteType === "safeAlt"
+                    ? colors?.routeAlt || "#17A2B8"
+                    : colors?.routeAltLight || "rgba(23, 162, 184, 0.45)"
+                }
+                lineCap="round"
+                lineDashPattern={[0, 0]}
+                mode="WALKING"
+                optimizeWaypoints={false}
+                zIndex={selectedRouteType === "safeAlt" ? 5 : 3}
+                onReady={(result) => {
+                  onRouteStatsUpdate?.("safeAlt", {
+                    duration: result.duration,
+                    distance: result.distance,
+                  });
+                  if (selectedRouteType === "safeAlt") {
+                    onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
+                  }
                 }}
                 onError={(error) => {
                   console.error("Safe route error:", error);
@@ -384,7 +489,11 @@ const MapViewComponent = forwardRef(
                 setIsMarkerModalVisible(true);
               }}
             >
-              <CustomMarker type="haven" title={haven.title} rating={haven.rating} />
+              <CustomMarker
+                type="haven"
+                title={haven.title}
+                rating={haven.rating}
+              />
             </Marker>
           ))}
 

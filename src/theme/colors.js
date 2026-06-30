@@ -1,4 +1,49 @@
-export const colors = {
+export const lightTheme = {
+  background: "#FFFFFF",
+  surface: "#F5F5F5",
+  surfaceLight: "#EFEFEF",
+  card: "#FAFAFA",
+  border: "#E0E0E0",
+  textPrimary: "#1F1F1F",
+  textSecondary: "#666666",
+  neonGreen: "#2ECC71",
+  neonRed: "#FF5252",
+  neonOrange: "#FF8A3D",
+  routeFastest: "#D4C5B5",
+  overlay: "rgba(0, 0, 0, 0.1)",
+  primary: "#FF8A3D",
+  accent: "#FF6B35",
+  userConeColor: "#4A90E2",
+  triangleColor: "#00CED1",
+  routeDangerous: "#8B5CF6",
+  routeDangerousLight: "rgba(139, 92, 246, 0.45)",
+  routeSafe: "#28A745",
+  routeSafeLight: "rgba(40, 167, 69, 0.45)",
+  routeAlt: "#17A2B8",
+  routeAltLight: "rgba(23, 162, 184, 0.45)",
+  mapStyle: [
+    { elementType: "geometry", stylers: [{ color: "#f0e9e0" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#f0e9e0" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#5c5c5c" }] },
+    {
+      featureType: "road",
+      elementType: "geometry",
+      stylers: [{ color: "#e5e5e5" }],
+    },
+    {
+      featureType: "road",
+      elementType: "geometry.stroke",
+      stylers: [{ color: "#d4d4d4" }],
+    },
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [{ color: "#b8d4e8" }],
+    },
+  ],
+};
+
+export const darkTheme = {
   background: "#15120F",
   surface: "#2A2521",
   surfaceLight: "#3A332C",
@@ -13,4 +58,35 @@ export const colors = {
   overlay: "rgba(0, 0, 0, 0.6)",
   primary: "#FF8A3D",
   accent: "#FF6B35",
+  userConeColor: "#1A73E8",
+  triangleColor: "#00CED1",
+  routeDangerous: "#8B5CF6",
+  routeDangerousLight: "rgba(139, 92, 246, 0.45)",
+  routeSafe: "#28A745",
+  routeSafeLight: "rgba(40, 167, 69, 0.45)",
+  routeAlt: "#17A2B8",
+  routeAltLight: "rgba(23, 162, 184, 0.45)",
+  mapStyle: [
+    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+    {
+      featureType: "road",
+      elementType: "geometry",
+      stylers: [{ color: "#38414e" }],
+    },
+    {
+      featureType: "road",
+      elementType: "geometry.stroke",
+      stylers: [{ color: "#212a37" }],
+    },
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [{ color: "#17263c" }],
+    },
+  ],
 };
+
+// Default export for backward compatibility
+export const colors = darkTheme;

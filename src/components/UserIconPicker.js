@@ -1,5 +1,5 @@
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
 
 const palette = {
   overlay: "rgba(0, 0, 0, 0.6)",
@@ -21,6 +21,9 @@ const ICON_OPTIONS = [
 ];
 
 const UserIconPicker = ({ visible, onClose, onSelect, currentIcon }) => {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -55,6 +58,8 @@ const UserIconPicker = ({ visible, onClose, onSelect, currentIcon }) => {
                   />
                 )}
                 <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                   style={[
                     styles.iconLabel,
                     currentIcon === option.id && styles.selectedLabel,
@@ -74,79 +79,87 @@ const UserIconPicker = ({ visible, onClose, onSelect, currentIcon }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: palette.overlay,
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    color: palette.textPrimary,
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 24,
-    textAlign: "center",
-  },
-  iconGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 16,
-    marginBottom: 24,
-  },
-  iconOption: {
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    width: 110,
-    backgroundColor: palette.cardBg,
-    borderWidth: 1.5,
-    borderColor: palette.cardBorder,
-  },
-  selectedIcon: {
-    backgroundColor: palette.chipBg,
-    borderWidth: 2,
-    borderColor: palette.selectedBorder,
-  },
-  iconPreview: {
-    width: 50,
-    height: 50,
-  },
-  circlePreview: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: palette.accent,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    marginBottom: 8,
-  },
-  selectedIconPreview: {
-    tintColor: palette.accent,
-  },
-  iconLabel: {
-    color: palette.textSecondary,
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  selectedLabel: {
-    color: palette.accent,
-    fontWeight: "600",
-  },
-  closeBtn: {
-    backgroundColor: palette.cardBg,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: palette.cardBorder,
-  },
-  closeText: {
-    color: palette.textPrimary,
-    fontWeight: "600",
-    fontSize: 15,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay || "rgba(0, 0, 0, 0.3)",
+      justifyContent: "center",
+      padding: 20,
+    },
+    container: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 20,
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: "700",
+      marginBottom: 20,
+      textAlign: "center",
+    },
+    iconGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 15,
+      marginBottom: 20,
+    },
+    iconOption: {
+      alignItems: "center",
+      padding: 10,
+      borderRadius: 12,
+      width: 90,
+    },
+    selectedIcon: {
+      backgroundColor: "rgba(99, 102, 241, 0.1)",
+      borderWidth: 2,
+      borderColor: colors.primary,
+    },
+    iconPreview: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginBottom: 8,
+    },
+    triangleIcon: {
+      borderRadius: 0,
+      width: 0,
+      height: 0,
+      backgroundColor: "transparent",
+      borderLeftWidth: 20,
+      borderRightWidth: 20,
+      borderBottomWidth: 35,
+      borderLeftColor: "transparent",
+      borderRightColor: "transparent",
+      borderBottomColor: "#00CED1",
+    },
+    iconLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: "500",
+      textAlign: "center",
+      flexShrink: 1,
+    },
+    selectedLabel: {
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    closeBtn: {
+      backgroundColor: colors.surface,
+      padding: 12,
+      borderRadius: 8,
+      alignItems: "center",
+    },
+    closeText: {
+      color: colors.textPrimary,
+      fontWeight: "600",
+    },
+  });
 
 export default UserIconPicker;

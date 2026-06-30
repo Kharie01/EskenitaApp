@@ -16,22 +16,7 @@ import {
   TriangleAlert,
   User,
 } from "lucide-react-native";
-
-// ---- Design tokens — dark theme, matches the rest of the app ----
-const palette = {
-  overlay: "rgba(0, 0, 0, 0.55)",
-  sheetBg: "#15171D",
-  cardBg: "#1C1F26",
-  cardBorder: "#2A2E37",
-  selectedBorder: "#FF7A1A",
-  selectedBg: "rgba(255, 122, 26, 0.10)",
-  danger: "#FF4D4D",
-  accent: "#FF7A1A",
-  good: "#34D17A",
-  textPrimary: "#F5F6F8",
-  textSecondary: "#A7ACB5",
-  textMuted: "#6E727B",
-};
+import { useTheme } from "../theme/ThemeContext";
 
 const CATEGORIES = [
   { id: "no_lighting", label: "No lighting", Icon: MoonStar },
@@ -67,6 +52,8 @@ const ThreatReportModal = ({
   userLocation,
   locationLabel = "Current location",
 }) => {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [category, setCategory] = useState(null);
   const [severity, setSeverity] = useState("medium");
   const [description, setDescription] = useState("");
@@ -119,7 +106,7 @@ const ThreatReportModal = ({
         <View style={styles.modalContainer}>
           <View style={styles.headerRow}>
             <View style={styles.warnBadge}>
-              <TriangleAlert size={18} color={palette.danger} />
+              <TriangleAlert size={18} color={colors.neonRed} />
             </View>
             <View style={styles.headerTextWrap}>
               <Text style={styles.header}>What's unsafe?</Text>
@@ -140,7 +127,7 @@ const ThreatReportModal = ({
                   onPress={() => setCategory(id)}
                   activeOpacity={0.85}
                 >
-                  <Icon size={20} color={selected ? palette.accent : palette.textSecondary} />
+                  <Icon size={20} color={selected ? colors.primary : colors.textSecondary} />
                   <Text
                     style={[styles.categoryLabel, selected && styles.categoryLabelSelected]}
                   >
@@ -155,7 +142,7 @@ const ThreatReportModal = ({
           <TextInput
             style={styles.input}
             placeholder="Any details to help others?..."
-            placeholderTextColor={palette.textMuted}
+            placeholderTextColor={colors.textSecondary}
             multiline
             value={description}
             onChangeText={setDescription}
@@ -186,7 +173,7 @@ const ThreatReportModal = ({
           {/* Footer */}
           <View style={styles.footerRow}>
             <View style={styles.liveRow}>
-              <Radio size={13} color={palette.accent} />
+              <Radio size={13} color={colors.primary} />
               <Text style={styles.liveText}>Shared in real-time</Text>
             </View>
           </View>
@@ -219,160 +206,165 @@ const ThreatReportModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: palette.overlay,
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContainer: {
-    backgroundColor: palette.sheetBg,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: palette.cardBorder,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  warnBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 77, 77, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  headerTextWrap: {
-    flex: 1,
-  },
-  header: {
-    color: palette.textPrimary,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  subtext: {
-    color: palette.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 14,
-  },
-  categoryCard: {
-    width: "47.5%",
-    backgroundColor: palette.cardBg,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderWidth: 1.5,
-    borderColor: palette.cardBorder,
-    gap: 8,
-  },
-  categoryCardSelected: {
-    borderColor: palette.selectedBorder,
-    backgroundColor: palette.selectedBg,
-  },
-  categoryLabel: {
-    color: palette.textPrimary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  categoryLabelSelected: {
-    color: palette.accent,
-  },
-  input: {
-    backgroundColor: palette.cardBg,
-    color: palette.textPrimary,
-    borderRadius: 14,
-    padding: 14,
-    minHeight: 80,
-    textAlignVertical: "top",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: palette.cardBorder,
-    fontSize: 14,
-  },
-  sectionLabel: {
-    color: palette.textSecondary,
-    fontSize: 13,
-    marginBottom: 10,
-  },
-  severityRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 16,
-  },
-  severityPill: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: palette.cardBg,
-    borderWidth: 1.5,
-    borderColor: palette.cardBorder,
-  },
-  severityPillSelected: {
-    borderColor: palette.accent,
-    backgroundColor: palette.selectedBg,
-  },
-  severityText: {
-    color: palette.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  severityTextSelected: {
-    color: palette.accent,
-  },
-  footerRow: {
-    marginBottom: 16,
-  },
-  liveRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  liveText: {
-    color: palette.accent,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-  },
-  cancelBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-  },
-  cancelText: {
-    color: palette.textSecondary,
-    fontWeight: "600",
-  },
-  submitBtn: {
-    backgroundColor: palette.accent,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    minWidth: 130,
-    alignItems: "center",
-  },
-  submitBtnDisabled: {
-    opacity: 0.4,
-  },
-  submitText: {
-    color: "#1A1100",
-    fontWeight: "700",
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay || "rgba(0, 0, 0, 0.55)",
+      justifyContent: "center",
+      padding: 20,
+    },
+    modalContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 20,
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+
+    // Header
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 12,
+      marginBottom: 16,
+    },
+    warnBadge: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: "rgba(255, 77, 77, 0.12)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTextWrap: {
+      flex: 1,
+    },
+    header: {
+      color: colors.neonRed,
+      fontSize: 20,
+      fontWeight: "700",
+      marginBottom: 4,
+    },
+    subtext: { color: colors.textSecondary, fontSize: 13 },
+
+    // Category grid
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+      marginBottom: 16,
+    },
+    categoryCard: {
+      width: "47%",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderWidth: 1.5,
+      borderColor: colors.border || colors.surfaceLight,
+    },
+    categoryCardSelected: {
+      borderColor: colors.primary,
+      backgroundColor: "rgba(255, 138, 61, 0.08)",
+    },
+    categoryLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: "600",
+      flexShrink: 1,
+    },
+    categoryLabelSelected: {
+      color: colors.primary,
+    },
+
+    // Description input
+    input: {
+      backgroundColor: colors.surface,
+      color: colors.textPrimary,
+      borderRadius: 12,
+      padding: 12,
+      minHeight: 90,
+      textAlignVertical: "top",
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border || colors.surfaceLight,
+    },
+
+    // Severity
+    sectionLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: "700",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 10,
+    },
+    severityRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 16,
+    },
+    severityPill: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: 10,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border || colors.surfaceLight,
+    },
+    severityPillSelected: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    severityText: {
+      color: colors.textSecondary,
+      fontWeight: "600",
+      fontSize: 13,
+    },
+    severityTextSelected: {
+      color: "#1A1100",
+    },
+
+    // Footer
+    footerRow: {
+      marginBottom: 16,
+    },
+    liveRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    liveText: {
+      color: colors.primary,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+
+    buttonRow: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+    cancelBtn: {
+      padding: 12,
+      borderRadius: 8,
+      justifyContent: "center",
+    },
+    cancelText: { color: colors.textSecondary, fontWeight: "600" },
+    submitBtn: {
+      backgroundColor: colors.neonRed,
+      padding: 12,
+      borderRadius: 8,
+      minWidth: 140,
+      alignItems: "center",
+    },
+    submitBtnDisabled: {
+      opacity: 0.5,
+    },
+    submitText: { color: "#FFFFFF", fontWeight: "600" },
+  });
 
 export default ThreatReportModal;
