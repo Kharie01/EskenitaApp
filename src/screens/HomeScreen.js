@@ -15,15 +15,18 @@ import GuardianProtectionPanel from "../components/GuardianProtectionPanel";
 import MapViewComponent from "../components/MapViewComponents";
 import NavigationHud from "../components/NavigationHud";
 import RouteComparisonPanel from "../components/RouteComparisonPanel";
+import ThemeToggleButton from "../components/ThemeToggleButton";
 import ThreatReportModal from "../components/ThreatReportModal";
 import UserIconPicker from "../components/UserIconPicker";
 import { analyzeThreatWithAI } from "../services/MockVertexAi";
 import { fetchDynamicSafeHavens } from "../services/PlacesServices";
-import { colors } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const HomeScreen = () => {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [threatPins, setThreatPins] = useState([]);
   const [destination, setDestination] = useState(null);
   const [dynamicSafeHavens, setDynamicSafeHavens] = useState([]);
@@ -312,6 +315,7 @@ const HomeScreen = () => {
           onRouteStatsUpdate={handleRouteStatsUpdate}
           isNavigating={isNavigating}
           onRouteStepsUpdate={setNavigationSteps}
+          colors={colors}
         />
 
         {/* Minimal Search Bar */}
@@ -369,6 +373,11 @@ const HomeScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
+        )}
+
+        {/* Theme Toggle Button */}
+        {!isNavigating && (
+          <ThemeToggleButton style={styles.themeToggleButton} />
         )}
 
         {/* Recenter Map Button */}
@@ -573,7 +582,7 @@ const HomeScreen = () => {
           >
             <ShieldCheck
               size={22}
-              color={isGuardianActive ? "#15120F" : colors.neonGreen}
+              color={isGuardianActive ? colors.background : colors.neonGreen}
             />
           </TouchableOpacity>
         )}
@@ -625,202 +634,209 @@ const HomeScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  sosBackground: { backgroundColor: "rgba(255,0,0,0.4)" },
-  searchContainer: {
-    position: "absolute",
-    top: 60,
-    left: 16,
-    right: 16,
-    flexDirection: "column",
-    alignItems: "flex-start",
-    zIndex: 999,
-    elevation: 999,
-  },
-  searchRowContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-  },
-  textInputContainer: {
-    backgroundColor: "transparent",
-    borderTopWidth: 0,
-    borderBottomWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  textInput: {
-    backgroundColor: colors.card,
-    height: 48,
-    borderRadius: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: colors.textPrimary,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  listView: {
-    position: "absolute",
-    top: 55,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    marginTop: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchRow: {
-    padding: 14,
-    height: 50,
-    backgroundColor: colors.card,
-  },
-  searchDescription: {
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  clearBtn: {
-    marginLeft: 10,
-    backgroundColor: colors.card,
-    height: 48,
-    width: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  clearText: { color: colors.textPrimary, fontWeight: "600" },
-  sheetBackground: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  toolbarContent: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  toolbarItem: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 3,
-    minWidth: 75,
-  },
-  activeTab: {
-    backgroundColor: "rgba(255, 138, 61, 0.12)",
-    borderRadius: 12,
-  },
-  activeToolbarItem: {
-    backgroundColor: "rgba(255, 138, 61, 0.12)",
-    borderRadius: 12,
-  },
-  toolbarIcon: { fontSize: 24, marginBottom: 1 },
-  toolbarLabel: {
-    fontSize: 10,
-    color: colors.textSecondary,
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  activeTabLabel: {
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  customizeIconPreview: {
-    width: 24,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  customizeIconDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
-  },
-  trianglePreview: {
-    borderRadius: 0,
-    width: 0,
-    height: 0,
-    backgroundColor: "transparent",
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 14,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: "#00CED1",
-  },
-  diamondPreview: {
-    borderRadius: 0,
-    transform: [{ rotate: "45deg" }],
-    backgroundColor: "#FF6B6B",
-  },
-  recenterButton: {
-    position: "absolute",
-    bottom: 280,
-    right: 16,
-    backgroundColor: colors.card,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 6,
-    zIndex: 10,
-  },
-  guardianFab: {
-    position: "absolute",
-    bottom: 230,
-    right: 16,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.card,
-    borderWidth: 1.5,
-    borderColor: "rgba(46, 204, 113, 0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 8,
-    zIndex: 31,
-  },
-  guardianFabActive: {
-    backgroundColor: colors.neonGreen,
-    borderColor: colors.neonGreen,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    sosBackground: { backgroundColor: "rgba(255,0,0,0.4)" },
+    searchContainer: {
+      position: "absolute",
+      top: 60,
+      left: 16,
+      right: 16,
+      flexDirection: "column",
+      alignItems: "flex-start",
+      zIndex: 999,
+      elevation: 999,
+    },
+    searchRowContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%",
+    },
+    textInputContainer: {
+      backgroundColor: "transparent",
+      borderTopWidth: 0,
+      borderBottomWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    textInput: {
+      backgroundColor: colors.card,
+      height: 48,
+      borderRadius: 24,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      color: colors.textPrimary,
+      shadowColor: "#000",
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    listView: {
+      position: "absolute",
+      top: 55,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      marginTop: 8,
+      shadowColor: "#000",
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      elevation: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    searchRow: {
+      padding: 14,
+      height: 50,
+      backgroundColor: colors.card,
+    },
+    searchDescription: {
+      color: colors.textPrimary,
+      fontSize: 14,
+    },
+    clearBtn: {
+      marginLeft: 10,
+      backgroundColor: colors.card,
+      height: 48,
+      width: 48,
+      borderRadius: 24,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    clearText: { color: colors.textPrimary, fontWeight: "600" },
+    sheetBackground: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    toolbarContent: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      alignItems: "center",
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+    },
+    toolbarItem: {
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 3,
+      minWidth: 75,
+    },
+    activeTab: {
+      backgroundColor: "rgba(255, 138, 61, 0.12)",
+      borderRadius: 12,
+    },
+    activeToolbarItem: {
+      backgroundColor: "rgba(255, 138, 61, 0.12)",
+      borderRadius: 12,
+    },
+    toolbarIcon: { fontSize: 24, marginBottom: 1 },
+    toolbarLabel: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontWeight: "500",
+      textAlign: "center",
+    },
+    activeTabLabel: {
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    customizeIconPreview: {
+      width: 24,
+      height: 24,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 2,
+    },
+    customizeIconDot: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.primary,
+    },
+    trianglePreview: {
+      borderRadius: 0,
+      width: 0,
+      height: 0,
+      backgroundColor: "transparent",
+      borderLeftWidth: 8,
+      borderRightWidth: 8,
+      borderBottomWidth: 14,
+      borderLeftColor: "transparent",
+      borderRightColor: "transparent",
+      borderBottomColor: "#00CED1",
+    },
+    diamondPreview: {
+      borderRadius: 0,
+      transform: [{ rotate: "45deg" }],
+      backgroundColor: "#FF6B6B",
+    },
+    themeToggleButton: {
+      position: "absolute",
+      bottom: 330,
+      right: 16,
+      zIndex: 10,
+    },
+    recenterButton: {
+      position: "absolute",
+      bottom: 280,
+      right: 16,
+      backgroundColor: colors.card,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.4,
+      shadowRadius: 4,
+      elevation: 6,
+      zIndex: 10,
+    },
+    guardianFab: {
+      position: "absolute",
+      bottom: 230,
+      right: 16,
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: colors.card,
+      borderWidth: 1.5,
+      borderColor: "rgba(46, 204, 113, 0.4)",
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.4,
+      shadowRadius: 6,
+      elevation: 8,
+      zIndex: 31,
+    },
+    guardianFabActive: {
+      backgroundColor: colors.neonGreen,
+      borderColor: colors.neonGreen,
+    },
+  });
 
 export default HomeScreen;
