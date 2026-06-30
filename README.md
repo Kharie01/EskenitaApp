@@ -1,4 +1,4 @@
-# Project Eskenita
+# Gabay
 
 > A pedestrian safety navigation app that routes you home safely, not just quickly.
 
@@ -10,7 +10,7 @@
 
 ## Overview
 
-Project Eskenita is a **context-aware pedestrian navigation app** built for Filipino commuters who walk home at night. Unlike Google Maps or Waze — which optimize for speed — Eskenita routes users based on a dynamic **AI-calculated Safety Score**, keeping them on well-lit streets, near open establishments, and away from known hazard zones.
+Gabay is a **context-aware pedestrian navigation app** built for Filipino commuters who walk home at night. Unlike Google Maps or Waze — which optimize for speed — Eskenita routes users based on a dynamic **AI-calculated Safety Score**, keeping them on well-lit streets, near open establishments, and away from known hazard zones.
 
 The name comes from _eskenita_ — the Filipino word for the narrow, dark back alleys that are common in Philippine neighborhoods and are frequently associated with crime and poor lighting.
 
@@ -180,5 +180,5 @@ The app then presents two route options: the **fastest route** (gray) and the **
 
 <p align="center">
   Built with Security for the streets of the Philippines. <br/>
-  <em>"Ligtas na daan, ligtas na buhay."</em>
+  <em>"Ligtas na lakbay, hatid ng Gabay."</em>
 </p>
