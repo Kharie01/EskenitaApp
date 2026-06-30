@@ -33,6 +33,7 @@ const HomeScreen = () => {
   const [userIconType, setUserIconType] = useState("circle");
   const [selectedRouteType, setSelectedRouteType] = useState("safe");
   const [routeStats, setRouteStats] = useState({ safe: null, dangerous: null });
+  const [isGuardianSheetOpen, setIsGuardianSheetOpen] = useState(false);
 
   const bottomSheetRef = useRef(null);
   const mapRef = useRef(null);
@@ -501,7 +502,7 @@ const HomeScreen = () => {
           currentIcon={userIconType}
         />
 
-        {isNavigating ? (
+        {isNavigating && (
           <NavigationHud
             visible={isNavigating}
             currentStep={navigationSteps[currentStepIndex]}
@@ -515,6 +516,39 @@ const HomeScreen = () => {
             speedKmh={userSpeedKmh}
             onExit={handleExitNavigation}
           />
+        )}
+
+        {isNavigating && !isGuardianSheetOpen && (
+          <TouchableOpacity
+            style={[
+              styles.guardianFab,
+              isGuardianActive && styles.guardianFabActive,
+            ]}
+            onPress={() => setIsGuardianSheetOpen(true)}
+          >
+            <ShieldCheck
+              size={22}
+              color={isGuardianActive ? "#15120F" : colors.neonGreen}
+            />
+          </TouchableOpacity>
+        )}
+
+        {isNavigating ? (
+          isGuardianSheetOpen && (
+            <GuardianProtectionPanel
+              visible={isGuardianSheetOpen}
+              isDeadZoneActive={isDeadZoneActive}
+              timeLeft={deadZoneTimeLeft}
+              onToggleDeadZone={handleToggleDeadZone}
+              onTriggerSOS={handleSOS}
+              onEndProtection={() => {
+                setIsGuardianActive(false);
+                setIsDeadZoneActive(false);
+                setIsGuardianSheetOpen(false);
+              }}
+              onClose={() => setIsGuardianSheetOpen(false)}
+            />
+          )
         ) : isGuardianActive ? (
           <GuardianProtectionPanel
             visible={isGuardianActive}
@@ -718,6 +752,29 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
     zIndex: 10,
+  },
+  guardianFab: {
+    position: "absolute",
+    bottom: 230,
+    right: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: "rgba(46, 204, 113, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 31,
+  },
+  guardianFabActive: {
+    backgroundColor: colors.neonGreen,
+    borderColor: colors.neonGreen,
   },
 });
 

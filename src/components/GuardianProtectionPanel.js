@@ -21,6 +21,7 @@ const GuardianProtectionPanel = ({
   onToggleDeadZone,
   onTriggerSOS,
   onEndProtection,
+  onClose,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -48,6 +49,11 @@ const GuardianProtectionPanel = ({
             <Text style={styles.headerSubtitle}>{guardianName} is watching your journey</Text>
           </View>
         </View>
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.dismissBtn}>
+            <X size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <Text style={styles.sectionLabel}>Your guardian</Text>
@@ -180,6 +186,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  dismissBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dismissBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   shieldBadge: {
     width: 38,
