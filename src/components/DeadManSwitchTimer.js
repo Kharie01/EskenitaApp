@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors } from "../theme/colors";
+import { useTheme } from "../theme/ThemeContext";
 
 const DeadManSwitchTimer = ({
   isActive,
@@ -8,7 +8,8 @@ const DeadManSwitchTimer = ({
   onCancel,
   onTriggerSOS,
 }) => {
-  const [timeLeft, setTimeLeft] = useState(240); // 4 minutes
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   useEffect(() => {
     if (!isActive) {
@@ -59,54 +60,69 @@ const DeadManSwitchTimer = ({
   );
 };
 
-const styles = StyleSheet.create({
-  activateBtn: {
-    backgroundColor: colors.surface,
-    borderColor: colors.neonRed,
-    borderWidth: 1,
-    padding: 16,
-    borderRadius: 30,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  activateText: { color: colors.neonRed, fontWeight: "bold", fontSize: 16 },
-  activeContainer: {
-    backgroundColor: "rgba(255, 49, 49, 0.1)",
-    borderColor: colors.neonRed,
-    borderWidth: 2,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  timerText: {
-    color: colors.neonRed,
-    fontSize: 48,
-    fontWeight: "900",
-    marginBottom: 16,
-    textShadowColor: colors.neonRed,
-    textShadowRadius: 10,
-  },
-  row: { flexDirection: "row", gap: 10 },
-  cancelBtn: {
-    backgroundColor: colors.neonGreen,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-    flex: 1,
-    alignItems: "center",
-  },
-  cancelText: { color: colors.background, fontWeight: "bold", fontSize: 16 },
-  testBtn: {
-    backgroundColor: colors.surface,
-    borderColor: colors.neonRed,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 30,
-    alignItems: "center",
-  },
-  testText: { color: colors.neonRed, fontWeight: "bold" },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    activateBtn: {
+      backgroundColor: colors.card,
+      borderColor: colors.neonRed,
+      borderWidth: 1,
+      padding: 16,
+      borderRadius: 30,
+      alignItems: "center",
+      marginBottom: 20,
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    activateText: { color: colors.neonRed, fontWeight: "700", fontSize: 16 },
+    activeContainer: {
+      backgroundColor: "rgba(220, 53, 69, 0.1)",
+      borderColor: colors.neonRed,
+      borderWidth: 2,
+      borderRadius: 16,
+      padding: 20,
+      alignItems: "center",
+      marginBottom: 20,
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowRadius: 16,
+      elevation: 6,
+    },
+    timerText: {
+      color: colors.neonRed,
+      fontSize: 48,
+      fontWeight: "900",
+      marginBottom: 16,
+    },
+    row: { flexDirection: "row", gap: 10 },
+    cancelBtn: {
+      backgroundColor: colors.neonGreen,
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 30,
+      flex: 1,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    cancelText: { color: colors.textPrimary, fontWeight: "700", fontSize: 16 },
+    testBtn: {
+      backgroundColor: colors.card,
+      borderColor: colors.neonRed,
+      borderWidth: 1,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderRadius: 30,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    testText: { color: colors.neonRed, fontWeight: "700" },
+  });
 
 export default DeadManSwitchTimer;
