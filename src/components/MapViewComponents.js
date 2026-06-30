@@ -1,9 +1,11 @@
-import React, { forwardRef, useMemo, useState } from "react";
+import React, { forwardRef, useEffect, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
 import mapStyle from "../theme/mapStyle.json";
+import CustomMarker from "./CustomMarker";
+import MarkerDetailModal from "./MarkerDetailModal";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -48,12 +50,26 @@ const getDottedCoordinates = (coordinates, intervalMeters) => {
 
 const MapViewComponent = forwardRef(
   (
-    { threatPins, destination, userLocation, userHeading, safeHavens = [] },
+    {
+      threatPins,
+      destination,
+      userLocation,
+      userHeading,
+      safeHavens = [],
+      userIconType = "circle",
+      selectedRouteType,
+      onRouteStatsUpdate,
+      isNavigating = false,
+      onRouteStepsUpdate,
+    },
     ref,
   ) => {
     const [lineScale, setLineScale] = useState(1);
     const [iosSafeRouteCoords, setIosSafeRouteCoords] = useState([]);
     const [iosAltRouteCoords, setIosAltRouteCoords] = useState([]);
+    const [selectedMarker, setSelectedMarker] = useState(null);
+    const [isMarkerModalVisible, setIsMarkerModalVisible] = useState(false);
+    const [mapRegion, setMapRegion] = useState(null);
     const origin = userLocation || { latitude: 15.4828, longitude: 120.9749 }; // Near NEUST
 
     const toRad = (value) => (value * Math.PI) / 180;
@@ -149,6 +165,31 @@ const MapViewComponent = forwardRef(
         ? [routeStrokeWidth, routeStrokeWidth * 10]
         : [0, routeStrokeWidth * 10];
 
+    // Auto-fit map to show full route when destination is set
+    useEffect(() => {
+      if (destination && ref?.current && !isNavigating) {
+        ref.current.fitToCoordinates([origin, destination], {
+          edgePadding: { top: 100, right: 50, bottom: 200, left: 50 },
+          animated: true,
+        });
+      }
+    }, [destination, origin, ref, isNavigating]);
+
+    // First-person navigation camera: tilt + heading-up + follow user marker
+    useEffect(() => {
+      if (isNavigating && ref?.current && origin) {
+        ref.current.animateCamera(
+          {
+            center: origin,
+            pitch: 70,
+            heading: userHeading || 0,
+            zoom: 19.5,
+          },
+          { duration: 600 },
+        );
+      }
+    }, [isNavigating, origin, userHeading, ref]);
+
     return (
       <View style={styles.container}>
         <MapView
@@ -159,12 +200,13 @@ const MapViewComponent = forwardRef(
           initialRegion={{
             latitude: origin.latitude,
             longitude: origin.longitude,
-            latitudeDelta: 0.03,
-            longitudeDelta: 0.03,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
           }}
           onRegionChangeComplete={(region) => {
             const newScale = 0.03 / region.latitudeDelta;
             setLineScale(Math.min(Math.max(newScale, 0.5), 3));
+            setMapRegion(region);
           }}
         >
           {/* User Location Marker */}
@@ -199,45 +241,88 @@ const MapViewComponent = forwardRef(
                   />
                 </Svg>
               </View>
-              <View style={styles.userLocationDot} />
+              {userIconType === "circle" && (
+                <View style={styles.userLocationDot} />
+              )}
+              {userIconType === "triangle" && (
+                <View
+                  style={[
+                    styles.triangleIcon,
+                    { transform: [{ rotate: `${userHeading || 0}deg` }] },
+                  ]}
+                >
+                  <Svg height="24" width="24">
+                    <Path
+                      d="M 12,2 L 22,20 L 2,20 Z"
+                      fill="#00CED1"
+                      stroke="#FFFFFF"
+                      strokeWidth="2"
+                      strokeLinejoin="round"
+                    />
+                  </Svg>
+                </View>
+              )}
             </View>
           </Marker>
 
           {destination && (
             <>
-              <Marker coordinate={destination} title="Destination">
-                <View style={styles.customMarker}>
-                  <Text style={{ fontSize: 24 }}>📍</Text>
-                </View>
+              <Marker
+                coordinate={destination}
+                title="Destination"
+                onPress={() => {
+                  setSelectedMarker({
+                    type: "destination",
+                    title: "Destination",
+                    color: "#FF9900",
+                    description: "Your selected destination",
+                  });
+                  setIsMarkerModalVisible(true);
+                }}
+              >
+                <CustomMarker type="destination" title="Destination" />
               </Marker>
 
-              {/* The Blue Optimized Balance Route */}
-              <MapViewDirections
-                origin={origin}
-                destination={destination}
-                waypoints={balancedSafeWaypoints} // Uses the mathematically streamlined list of safe spots
-                apikey={GOOGLE_MAPS_API_KEY}
-                strokeWidth={routeStrokeWidth}
-                strokeColor="#2196F3"
-                lineCap="round"
-                lineDashPattern={routeDashPattern}
-                mode="WALKING"
-                optimizeWaypoints={false} // Retain false because our code handles chronological progression spacing
-                zIndex={3}
-              />
-
-              {/* Underlying standard baseline path for reference */}
+              {/* Dangerous route — always visible for comparison, dimmed when not selected */}
               <MapViewDirections
                 origin={origin}
                 destination={destination}
                 apikey={GOOGLE_MAPS_API_KEY}
-                strokeWidth={routeStrokeWidth}
-                strokeColor="#888888"
+                strokeWidth={selectedRouteType === "dangerous" ? routeStrokeWidth + 2 : routeStrokeWidth}
+                strokeColor={selectedRouteType === "dangerous" ? "#8B5CF6" : "rgba(139, 92, 246, 0.45)"}
                 lineCap="round"
-                lineDashPattern={routeDashPattern}
+                lineDashPattern={[0, 0]}
                 mode="WALKING"
                 optimizeWaypoints={false}
-                zIndex={2}
+                zIndex={selectedRouteType === "dangerous" ? 4 : 2}
+                onReady={(result) => {
+                  onRouteStatsUpdate?.("dangerous", {
+                    duration: result.duration,
+                    distance: result.distance,
+                  });
+                }}
+              />
+
+              {/* Safe route — always visible, highlighted when selected */}
+              <MapViewDirections
+                origin={origin}
+                destination={destination}
+                waypoints={balancedSafeWaypoints}
+                apikey={GOOGLE_MAPS_API_KEY}
+                strokeWidth={selectedRouteType === "safe" ? routeStrokeWidth + 3 : routeStrokeWidth}
+                strokeColor={selectedRouteType === "safe" ? "#28A745" : "rgba(40, 167, 69, 0.45)"}
+                lineCap="round"
+                lineDashPattern={[0, 0]}
+                mode="WALKING"
+                optimizeWaypoints={false}
+                zIndex={selectedRouteType === "safe" ? 5 : 3}
+                onReady={(result) => {
+                  onRouteStatsUpdate?.("safe", {
+                    duration: result.duration,
+                    distance: result.distance,
+                  });
+                  onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
+                }}
               />
             </>
           )}
@@ -248,13 +333,51 @@ const MapViewComponent = forwardRef(
               key={haven.id}
               coordinate={haven.latlng}
               title={haven.title}
+              onPress={() => {
+                setSelectedMarker({
+                  type: "haven",
+                  title: haven.title,
+                  color: "#39FF14",
+                  rating: haven.rating,
+                  description: "Safe haven location",
+                });
+                setIsMarkerModalVisible(true);
+              }}
             >
-              <View style={styles.customMarker}>
-                <Text style={{ fontSize: 16 }}>🛡️</Text>
-              </View>
+              <CustomMarker type="haven" title={haven.title} rating={haven.rating} />
+            </Marker>
+          ))}
+
+          {/* Render threat pins */}
+          {threatPins.map((threat, index) => (
+            <Marker
+              key={index}
+              coordinate={threat.coordinates}
+              title={threat.message}
+              onPress={() => {
+                setSelectedMarker({
+                  type: "threat",
+                  title: threat.message,
+                  color: "#FF3131",
+                  severity: threat.severity,
+                  description: "Reported threat location",
+                });
+                setIsMarkerModalVisible(true);
+              }}
+            >
+              <CustomMarker type="threat" title={threat.message} />
             </Marker>
           ))}
         </MapView>
+
+        <MarkerDetailModal
+          visible={isMarkerModalVisible}
+          onClose={() => {
+            setIsMarkerModalVisible(false);
+            setSelectedMarker(null);
+          }}
+          marker={selectedMarker}
+        />
       </View>
     );
   },
@@ -282,6 +405,29 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
+    backgroundColor: "#1A73E8",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 2,
+  },
+  triangleIcon: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 2,
+  },
+  customMarker: {
     backgroundColor: "#1A73E8",
     borderWidth: 2,
     borderColor: "#FFFFFF",
