@@ -1,15 +1,17 @@
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import * as Location from "expo-location";
-import { Link, Navigation, Timer, TriangleAlert } from "lucide-react-native";
+import { Navigation, ShieldCheck, TriangleAlert, Users } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DeadManSwitchTimer from "../components/DeadManSwitchTimer";
-import GuardianBanner from "../components/GuardianBanner";
+import GuardianProtectionPanel from "../components/GuardianProtectionPanel";
 import MapViewComponent from "../components/MapViewComponents";
+import NavigationHud from "../components/NavigationHud";
 import ThreatReportModal from "../components/ThreatReportModal";
+import UserIconPicker from "../components/UserIconPicker";
+import RouteComparisonPanel from "../components/RouteComparisonPanel";
 import { analyzeThreatWithAI } from "../services/MockVertexAi";
 import { fetchDynamicSafeHavens } from "../services/PlacesServices";
 import { colors } from "../theme/colors";
@@ -23,8 +25,15 @@ const HomeScreen = () => {
 
   const [isGuardianActive, setIsGuardianActive] = useState(false);
   const [isDeadZoneActive, setIsDeadZoneActive] = useState(false);
+  const [deadZoneTimeLeft, setDeadZoneTimeLeft] = useState(240);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSosTriggered, setIsSosTriggered] = useState(false);
+  const [activeTab, setActiveTab] = useState("navigate");
+  const [isIconPickerVisible, setIsIconPickerVisible] = useState(false);
+  const [userIconType, setUserIconType] = useState("circle");
+  const [selectedRouteType, setSelectedRouteType] = useState("safe");
+  const [routeStats, setRouteStats] = useState({ safe: null, dangerous: null });
+  const [isGuardianSheetOpen, setIsGuardianSheetOpen] = useState(false);
 
   const bottomSheetRef = useRef(null);
   const mapRef = useRef(null);
@@ -40,6 +49,10 @@ const HomeScreen = () => {
     longitude: 120.9749,
   });
   const [userHeading, setUserHeading] = useState(0);
+  const [userSpeedKmh, setUserSpeedKmh] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [navigationSteps, setNavigationSteps] = useState([]);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const handleSetDestination = () => {
     setDestination({ latitude: 15.4716, longitude: 120.9822 });
@@ -47,7 +60,34 @@ const HomeScreen = () => {
 
   const handleClearRoute = () => {
     setDestination(null);
+    setSelectedRouteType("safe");
+    setRouteStats({ safe: null, dangerous: null });
     googlePlacesRef.current?.setAddressText("");
+  };
+
+  const handleSelectRoute = (routeType) => {
+    if (routeType === "dangerous") {
+      Alert.alert(
+        "Route Blocked",
+        "This route passes through danger zones and is not available. Please use the safe route.",
+      );
+      return;
+    }
+    setSelectedRouteType("safe");
+  };
+
+  const handleRouteStatsUpdate = (routeType, stats) => {
+    setRouteStats((prev) => ({ ...prev, [routeType]: stats }));
+  };
+
+  const handleStartNavigation = () => {
+    setIsNavigating(true);
+    setCurrentStepIndex(0);
+  };
+
+  const handleExitNavigation = () => {
+    setIsNavigating(false);
+    setCurrentStepIndex(0);
   };
 
   const handleShareGuardian = () => {
@@ -68,6 +108,51 @@ const HomeScreen = () => {
       { text: "Dismiss", onPress: () => setIsSosTriggered(false) },
     ]);
   };
+
+  const handleToggleDeadZone = (value) => {
+    setIsDeadZoneActive(value);
+    if (value) {
+      setDeadZoneTimeLeft(240);
+    }
+  };
+
+  useEffect(() => {
+    if (!isDeadZoneActive) {
+      setDeadZoneTimeLeft(240);
+      return;
+    }
+    if (deadZoneTimeLeft <= 0) {
+      handleSOS();
+      return;
+    }
+    const interval = setInterval(() => {
+      setDeadZoneTimeLeft((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isDeadZoneActive, deadZoneTimeLeft]);
+
+  // Advance to next turn-by-turn step once the user gets close to the current step's end point
+  useEffect(() => {
+    if (!isNavigating || navigationSteps.length === 0 || !userLocation) return;
+
+    const step = navigationSteps[currentStepIndex];
+    if (!step?.end_location) return;
+
+    const toRad = (v) => (v * Math.PI) / 180;
+    const R = 6371e3;
+    const lat1 = toRad(userLocation.latitude);
+    const lat2 = toRad(step.end_location.lat);
+    const dLat = toRad(step.end_location.lat - userLocation.latitude);
+    const dLon = toRad(step.end_location.lng - userLocation.longitude);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    const distanceToStepEnd = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    if (distanceToStepEnd < 20 && currentStepIndex < navigationSteps.length - 1) {
+      setCurrentStepIndex((prev) => prev + 1);
+    }
+  }, [userLocation, isNavigating, navigationSteps, currentStepIndex]);
 
   const handleRecenter = () => {
     if (mapRef.current && userLocation) {
@@ -158,6 +243,9 @@ const HomeScreen = () => {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
+          if (location.coords.speed != null && location.coords.speed >= 0) {
+            setUserSpeedKmh(location.coords.speed * 3.6);
+          }
         },
       );
 
@@ -205,64 +293,69 @@ const HomeScreen = () => {
           userLocation={userLocation}
           userHeading={userHeading}
           safeHavens={dynamicSafeHavens}
+          userIconType={userIconType}
+          selectedRouteType={selectedRouteType}
+          onRouteStatsUpdate={handleRouteStatsUpdate}
+          isNavigating={isNavigating}
+          onRouteStepsUpdate={setNavigationSteps}
         />
 
         {/* Minimal Search Bar */}
+        {!isNavigating && (
         <View style={styles.searchContainer}>
-          <GooglePlacesAutocomplete
-            ref={googlePlacesRef}
-            placeholder={
-              destination ? "Routing to Destination..." : "Search here"
-            }
-            fetchDetails={true} // Crucial to grab the lat/lng details
-            onPress={(data, details = null) => {
-              if (details) {
-                setDestination({
-                  latitude: details.geometry.location.lat,
-                  longitude: details.geometry.location.lng,
-                });
-                googlePlacesRef.current?.blur();
+          <View style={styles.searchRowContainer}>
+            <GooglePlacesAutocomplete
+              ref={googlePlacesRef}
+              placeholder={
+                destination ? "Routing to Destination..." : "Search here"
               }
-            }}
-            onFail={(error) => {
-              console.error("Google Places API Error:", error);
-              // Optional: Alert it to your screen so you see it instantly during development
-              Alert.alert("API Error", error);
-            }}
-            query={{
-              key: GOOGLE_MAPS_API_KEY,
-              language: "en",
-              components: "country:ph",
-              location: `${userLocation.latitude},${userLocation.longitude}`,
-              radius: "10000",
-              strictbounds: true,
-            }}
-            styles={{
-              container: { flex: 1 },
-              textInputContainer: styles.textInputContainer,
-              textInput: styles.textInput,
-              listView: destination ? { display: "none" } : styles.listView,
-              row: styles.searchRow,
-              description: styles.searchDescription,
-            }}
-            enablePoweredByContainer={false}
-          />
-          {destination && (
+              fetchDetails={true} // Crucial to grab the lat/lng details
+              onPress={(data, details = null) => {
+                if (details) {
+                  setDestination({
+                    latitude: details.geometry.location.lat,
+                    longitude: details.geometry.location.lng,
+                  });
+                  setSelectedRouteType("safe");
+                  setRouteStats({ safe: null, dangerous: null });
+                  googlePlacesRef.current?.blur();
+                }
+              }}
+              onFail={(error) => {
+                console.error("Google Places API Error:", error);
+                // Optional: Alert it to your screen so you see it instantly during development
+                Alert.alert("API Error", error);
+              }}
+              query={{
+                key: GOOGLE_MAPS_API_KEY,
+                language: "en",
+                components: "country:ph",
+                location: `${userLocation.latitude},${userLocation.longitude}`,
+                radius: "10000",
+                strictbounds: true,
+              }}
+              styles={{
+                container: { flex: 1 },
+                textInputContainer: styles.textInputContainer,
+                textInput: styles.textInput,
+                listView: destination ? { display: "none" } : styles.listView,
+                row: styles.searchRow,
+                description: styles.searchDescription,
+              }}
+              enablePoweredByContainer={false}
+            />
             <TouchableOpacity
               style={styles.clearBtn}
               onPress={handleClearRoute}
             >
-              <Text style={styles.clearText}>✖</Text>
+              <Text style={styles.clearText}>✕</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
-
-        <GuardianBanner
-          isActive={isGuardianActive && !isDeadZoneActive}
-          onCancel={() => setIsGuardianActive(false)}
-        />
+        )}
 
         {/* Recenter Map Button */}
+        {!isNavigating && (
         <TouchableOpacity
           style={styles.recenterButton}
           onPress={handleRecenter}
@@ -274,14 +367,16 @@ const HomeScreen = () => {
             style={{ marginRight: 2, marginTop: 2 }}
           />
         </TouchableOpacity>
+        )}
 
         {/* Modern Toolbar Component on Bottom Layer */}
+        {!isNavigating && (
         <BottomSheet
           ref={bottomSheetRef}
           index={0}
           snapPoints={snapPoints}
           backgroundStyle={styles.sheetBackground}
-          handleIndicatorStyle={{ display: "none" }} // Completely flat minimalist design
+          handleIndicatorStyle={{ display: "none" }}
         >
           <BottomSheetView
             style={[
@@ -289,55 +384,109 @@ const HomeScreen = () => {
               { paddingBottom: insets.bottom > 0 ? insets.bottom : 12 },
             ]}
           >
-            {/* Action Item 1 */}
+            {/* Navigate Tab */}
             <TouchableOpacity
-              style={styles.toolbarItem}
-              onPress={() => setIsModalVisible(true)}
+              style={[styles.toolbarItem, activeTab === "navigate" && styles.activeTab]}
+              onPress={() => setActiveTab("navigate")}
+            >
+              <Navigation
+                size={22}
+                color={activeTab === "navigate" ? colors.primary : colors.textSecondary}
+                style={styles.toolbarIcon}
+              />
+              <Text
+                style={[
+                  styles.toolbarLabel,
+                  activeTab === "navigate" && styles.activeTabLabel,
+                ]}
+              >
+                Navigate
+              </Text>
+            </TouchableOpacity>
+
+            {/* Report Tab */}
+            <TouchableOpacity
+              style={[styles.toolbarItem, activeTab === "report" && styles.activeTab]}
+              onPress={() => {
+                setActiveTab("report");
+                setIsModalVisible(true);
+              }}
             >
               <TriangleAlert
                 size={22}
-                color="#333"
+                color={activeTab === "report" ? colors.primary : colors.textSecondary}
                 style={styles.toolbarIcon}
               />
-              <Text style={styles.toolbarLabel}>Report</Text>
+              <Text
+                style={[
+                  styles.toolbarLabel,
+                  activeTab === "report" && styles.activeTabLabel,
+                ]}
+              >
+                Report
+              </Text>
             </TouchableOpacity>
 
-            {/* Action Item 2 */}
+            {/* Guardian Tab */}
+            <TouchableOpacity
+              style={[styles.toolbarItem, activeTab === "guardian" && styles.activeTab]}
+              onPress={() => {
+                setActiveTab("guardian");
+                handleShareGuardian();
+              }}
+            >
+              <Users
+                size={22}
+                color={activeTab === "guardian" ? colors.primary : colors.textSecondary}
+                style={styles.toolbarIcon}
+              />
+              <Text
+                style={[
+                  styles.toolbarLabel,
+                  activeTab === "guardian" && styles.activeTabLabel,
+                ]}
+              >
+                Guardian
+              </Text>
+            </TouchableOpacity>
+
+            {/* Havens Tab */}
+            <TouchableOpacity
+              style={[styles.toolbarItem, activeTab === "havens" && styles.activeTab]}
+              onPress={() => setActiveTab("havens")}
+            >
+              <ShieldCheck
+                size={22}
+                color={activeTab === "havens" ? colors.primary : colors.textSecondary}
+                style={styles.toolbarIcon}
+              />
+              <Text
+                style={[
+                  styles.toolbarLabel,
+                  activeTab === "havens" && styles.activeTabLabel,
+                ]}
+              >
+                Havens
+              </Text>
+            </TouchableOpacity>
+
+            {/* Customize Icon Button */}
             <TouchableOpacity
               style={styles.toolbarItem}
-              onPress={handleShareGuardian}
+              onPress={() => setIsIconPickerVisible(true)}
             >
-              <Link size={22} color="#333" style={styles.toolbarIcon} />
-              <Text style={styles.toolbarLabel}>Share Link</Text>
-            </TouchableOpacity>
-
-            {/* Action Item 3 - Dead Man Switch Toggle */}
-            <TouchableOpacity
-              style={[
-                styles.toolbarItem,
-                isDeadZoneActive && styles.activeToolbarItem,
-              ]}
-              onPress={() => setIsDeadZoneActive(!isDeadZoneActive)}
-            >
-              <Timer
-                size={22}
-                color={isDeadZoneActive ? "#EF4444" : "#333"}
-                style={styles.toolbarIcon}
-              />
-              <Text style={styles.toolbarLabel}>Dead Zone</Text>
+              <View style={styles.customizeIconPreview}>
+                <View
+                  style={[
+                    styles.customizeIconDot,
+                    userIconType === "triangle" && styles.trianglePreview,
+                  ]}
+                />
+              </View>
+              <Text style={styles.toolbarLabel}>Icon</Text>
             </TouchableOpacity>
           </BottomSheetView>
         </BottomSheet>
-
-        {isDeadZoneActive && (
-          <View style={styles.timerOverlayContainer}>
-            <DeadManSwitchTimer
-              isActive={isDeadZoneActive}
-              onActivate={() => setIsDeadZoneActive(true)}
-              onCancel={() => setIsDeadZoneActive(false)}
-              onTriggerSOS={handleSOS}
-            />
-          </View>
         )}
 
         <ThreatReportModal
@@ -345,6 +494,83 @@ const HomeScreen = () => {
           onClose={() => setIsModalVisible(false)}
           onSubmit={handleReportThreat}
         />
+
+        <UserIconPicker
+          visible={isIconPickerVisible}
+          onClose={() => setIsIconPickerVisible(false)}
+          onSelect={(iconType) => setUserIconType(iconType)}
+          currentIcon={userIconType}
+        />
+
+        {isNavigating && (
+          <NavigationHud
+            visible={isNavigating}
+            currentStep={navigationSteps[currentStepIndex]}
+            nextStepPreview={navigationSteps[currentStepIndex + 1]}
+            totalDistanceRemaining={navigationSteps
+              .slice(currentStepIndex)
+              .reduce((sum, step) => sum + (step.distance?.value || 0), 0)}
+            totalDurationRemaining={navigationSteps
+              .slice(currentStepIndex)
+              .reduce((sum, step) => sum + (step.duration?.value || 0), 0)}
+            speedKmh={userSpeedKmh}
+            onExit={handleExitNavigation}
+          />
+        )}
+
+        {isNavigating && !isGuardianSheetOpen && (
+          <TouchableOpacity
+            style={[
+              styles.guardianFab,
+              isGuardianActive && styles.guardianFabActive,
+            ]}
+            onPress={() => setIsGuardianSheetOpen(true)}
+          >
+            <ShieldCheck
+              size={22}
+              color={isGuardianActive ? "#15120F" : colors.neonGreen}
+            />
+          </TouchableOpacity>
+        )}
+
+        {isNavigating ? (
+          isGuardianSheetOpen && (
+            <GuardianProtectionPanel
+              visible={isGuardianSheetOpen}
+              isDeadZoneActive={isDeadZoneActive}
+              timeLeft={deadZoneTimeLeft}
+              onToggleDeadZone={handleToggleDeadZone}
+              onTriggerSOS={handleSOS}
+              onEndProtection={() => {
+                setIsGuardianActive(false);
+                setIsDeadZoneActive(false);
+                setIsGuardianSheetOpen(false);
+              }}
+              onClose={() => setIsGuardianSheetOpen(false)}
+            />
+          )
+        ) : isGuardianActive ? (
+          <GuardianProtectionPanel
+            visible={isGuardianActive}
+            isDeadZoneActive={isDeadZoneActive}
+            timeLeft={deadZoneTimeLeft}
+            onToggleDeadZone={handleToggleDeadZone}
+            onTriggerSOS={handleSOS}
+            onEndProtection={() => {
+              setIsGuardianActive(false);
+              setIsDeadZoneActive(false);
+            }}
+          />
+        ) : (
+          <RouteComparisonPanel
+            visible={!!destination}
+            selectedRoute={selectedRouteType}
+            onSelectRoute={handleSelectRoute}
+            onStartNavigation={handleStartNavigation}
+            routeStats={routeStats}
+            viaSummary="Safe havens & protected areas"
+          />
+        )}
       </View>
     </GestureHandlerRootView>
   );
@@ -360,10 +586,15 @@ const styles = StyleSheet.create({
     top: 60,
     left: 16,
     right: 16,
-    flexDirection: "row",
-    alignItems: "flex-start", // Allows dropdown to spread downward naturally
-    zIndex: 999, // Needs to clear everything on the map viewport
+    flexDirection: "column",
+    alignItems: "flex-start",
+    zIndex: 999,
     elevation: 999,
+  },
+  searchRowContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
   },
   textInputContainer: {
     backgroundColor: "transparent",
@@ -373,59 +604,73 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   textInput: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.card,
     height: 48,
     borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#666",
+    color: colors.textPrimary,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   listView: {
     position: "absolute", // CRITICAL: Makes the list float instead of expanding the row container
     top: 55,
     left: 0,
     right: 0,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.card,
     borderRadius: 16,
     marginTop: 8,
     shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   searchRow: {
     padding: 14,
     height: 50,
+    backgroundColor: colors.card,
   },
   searchDescription: {
-    color: "#333",
+    color: colors.textPrimary,
     fontSize: 14,
   },
   clearBtn: {
     marginLeft: 10,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.card,
     height: 48,
     width: 48,
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  clearText: { color: "#333", fontWeight: "bold" },
+  clearText: { color: colors.textPrimary, fontWeight: "600" },
 
   // Bottom Icon Toolbar Styles
   sheetBackground: {
-    backgroundColor: "rgba(245, 245, 247, 0.94)", // Premium glassmorphism layout
+    backgroundColor: colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
   toolbarContent: {
     flexDirection: "row",
@@ -440,42 +685,96 @@ const styles = StyleSheet.create({
     padding: 3,
     minWidth: 75,
   },
+  activeTab: {
+    backgroundColor: "rgba(255, 138, 61, 0.12)",
+    borderRadius: 12,
+  },
   activeToolbarItem: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    backgroundColor: "rgba(255, 138, 61, 0.12)",
     borderRadius: 12,
   },
   toolbarIcon: { fontSize: 24, marginBottom: 1 },
   toolbarLabel: {
     fontSize: 10,
-    color: "#333",
+    color: colors.textSecondary,
     fontWeight: "500",
     textAlign: "center",
   },
-  timerOverlayContainer: {
-    position: "absolute",
-    bottom: 120, // Adjusted for smaller toolbar height
-    left: 16,
-    right: 16,
-    zIndex: 20, // Places it cleanly over the map canvas layer
+  activeTabLabel: {
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  customizeIconPreview: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  customizeIconDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  trianglePreview: {
+    borderRadius: 0,
+    width: 0,
+    height: 0,
+    backgroundColor: "transparent",
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 14,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderBottomColor: "#00CED1",
+  },
+  diamondPreview: {
+    borderRadius: 0,
+    transform: [{ rotate: "45deg" }],
+    backgroundColor: "#FF6B6B",
   },
   recenterButton: {
     position: "absolute",
-    bottom: 110,
+    bottom: 280,
     right: 16,
-    backgroundColor: "transparent",
+    backgroundColor: colors.card,
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: colors.border,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.4,
     shadowRadius: 4,
     elevation: 6,
     zIndex: 10,
+  },
+  guardianFab: {
+    position: "absolute",
+    bottom: 230,
+    right: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: "rgba(46, 204, 113, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 31,
+  },
+  guardianFabActive: {
+    backgroundColor: colors.neonGreen,
+    borderColor: colors.neonGreen,
   },
 });
 
