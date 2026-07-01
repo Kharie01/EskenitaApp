@@ -407,13 +407,13 @@ const MapViewComponent = forwardRef(
                 mode="WALKING"
                 optimizeWaypoints={false}
                 zIndex={selectedRouteType === "dangerous" ? 4 : 2}
-                // onReady={(result) => {
-                //   console.log("Dangerous route ready:", result);
-                //   onRouteStatsUpdate?.("dangerous", {
-                //     duration: result.duration,
-                //     distance: result.distance,
-                //   });
-                // }}
+                onReady={(result) => {
+                  // console.log("Dangerous route ready:", result);
+                  onRouteStatsUpdate?.("dangerous", {
+                    duration: result.duration,
+                    distance: result.distance,
+                  });
+                }}
                 onError={(error) => {
                   console.error("Dangerous route error:", error);
                 }}
@@ -440,16 +440,16 @@ const MapViewComponent = forwardRef(
                 mode="WALKING"
                 optimizeWaypoints={false}
                 zIndex={selectedRouteType === "safe" ? 5 : 3}
-              // onReady={(result) => {
-              //   console.log("Safe route ready:", result);
-              //   onRouteStatsUpdate?.("safe", {
-              //     duration: result.duration,
-              //     distance: result.distance,
-              //   });
-              //   if (selectedRouteType === "safe") {
-              //     onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
-              //   }
-              // }}
+                onReady={(result) => {
+                  // console.log("Safe route ready:", result);
+                  onRouteStatsUpdate?.("safe", {
+                    duration: result.duration,
+                    distance: result.distance,
+                  });
+                  if (selectedRouteType === "safe") {
+                    onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
+                  }
+                }}
               />
 
               {/* NEW: Alternative Safe Route */}
