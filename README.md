@@ -64,7 +64,7 @@ Eskenita replaces the "fastest route" logic with a **Dynamic Safety Score** per 
 | Threat Reports         | 15%    | Real-time user-submitted hazard reports               |
 | Social Media Sentiment | 10%    | NLP analysis of hyper-local safety sentiment          |
 
-The app then presents two route options: the **fastest route** (gray) and the **Eskenita Safe Route** (green) — and lets the user decide.
+The app then presents two route options: the **fastest route** (red) and the **Eskenita Safe Route** (green) — and lets the user decide.
 
 ---
 
