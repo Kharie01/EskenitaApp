@@ -263,25 +263,27 @@ const MapViewComponent = forwardRef(
       }
     }, [isNavigating, origin, userHeading, ref]);
 
-    const visibleSafeHavens = safeHavens.filter((haven) => {
-      if (!origin) return true;
-      const dx = haven.latlng.longitude - origin.longitude;
-      const dy = haven.latlng.latitude - origin.latitude;
-      const x = dx * Math.cos(toRad((origin.latitude + haven.latlng.latitude) / 2));
-      const distToUserKm = Math.sqrt(x * x + dy * dy) * 111.32;
+    const visibleSafeHavens = useMemo(() => {
+      return safeHavens.filter((haven) => {
+        if (!origin) return true;
+        const dx = haven.latlng.longitude - origin.longitude;
+        const dy = haven.latlng.latitude - origin.latitude;
+        const x = dx * Math.cos(toRad((origin.latitude + haven.latlng.latitude) / 2));
+        const distToUserKm = Math.sqrt(x * x + dy * dy) * 111.32;
 
-      if (distToUserKm <= 0.3) return true;
+        if (distToUserKm <= 0.3) return true;
 
-      if (destination) {
-        const proj = projectionOnRoute(haven.latlng);
-        if (proj >= -0.1 && proj <= 1.1) {
-          const distToPathKm = distanceToRoute(haven.latlng);
-          if (distToPathKm <= 0.3) return true;
+        if (destination) {
+          const proj = projectionOnRoute(haven.latlng);
+          if (proj >= -0.1 && proj <= 1.1) {
+            const distToPathKm = distanceToRoute(haven.latlng);
+            if (distToPathKm <= 0.3) return true;
+          }
         }
-      }
 
-      return false;
-    });
+        return false;
+      });
+    }, [safeHavens, origin, destination]);
 
     return (
       <View style={styles.container}>
@@ -407,13 +409,12 @@ const MapViewComponent = forwardRef(
                 mode="WALKING"
                 optimizeWaypoints={false}
                 zIndex={selectedRouteType === "dangerous" ? 4 : 2}
-                // onReady={(result) => {
-                //   console.log("Dangerous route ready:", result);
-                //   onRouteStatsUpdate?.("dangerous", {
-                //     duration: result.duration,
-                //     distance: result.distance,
-                //   });
-                // }}
+                onReady={(result) => {
+                  onRouteStatsUpdate?.("dangerous", {
+                    duration: result.duration,
+                    distance: result.distance,
+                  });
+                }}
                 onError={(error) => {
                   console.error("Dangerous route error:", error);
                 }}
@@ -440,16 +441,15 @@ const MapViewComponent = forwardRef(
                 mode="WALKING"
                 optimizeWaypoints={false}
                 zIndex={selectedRouteType === "safe" ? 5 : 3}
-              // onReady={(result) => {
-              //   console.log("Safe route ready:", result);
-              //   onRouteStatsUpdate?.("safe", {
-              //     duration: result.duration,
-              //     distance: result.distance,
-              //   });
-              //   if (selectedRouteType === "safe") {
-              //     onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
-              //   }
-              // }}
+                onReady={(result) => {
+                  onRouteStatsUpdate?.("safe", {
+                    duration: result.duration,
+                    distance: result.distance,
+                  });
+                  if (selectedRouteType === "safe") {
+                    onRouteStepsUpdate?.(result.legs?.[0]?.steps || []);
+                  }
+                }}
               />
 
               {/* NEW: Alternative Safe Route */}
