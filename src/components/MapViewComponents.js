@@ -263,6 +263,26 @@ const MapViewComponent = forwardRef(
       }
     }, [isNavigating, origin, userHeading, ref]);
 
+    const visibleSafeHavens = safeHavens.filter((haven) => {
+      if (!origin) return true;
+      const dx = haven.latlng.longitude - origin.longitude;
+      const dy = haven.latlng.latitude - origin.latitude;
+      const x = dx * Math.cos(toRad((origin.latitude + haven.latlng.latitude) / 2));
+      const distToUserKm = Math.sqrt(x * x + dy * dy) * 111.32;
+
+      if (distToUserKm <= 0.3) return true;
+
+      if (destination) {
+        const proj = projectionOnRoute(haven.latlng);
+        if (proj >= -0.1 && proj <= 1.1) {
+          const distToPathKm = distanceToRoute(haven.latlng);
+          if (distToPathKm <= 0.3) return true;
+        }
+      }
+
+      return false;
+    });
+
     return (
       <View style={styles.container}>
         <MapView
@@ -470,7 +490,7 @@ const MapViewComponent = forwardRef(
           )}
 
           {/* Render all surrounding safety points */}
-          {safeHavens.map((haven) => (
+          {visibleSafeHavens.map((haven) => (
             <Marker
               key={haven.id}
               coordinate={haven.latlng}
