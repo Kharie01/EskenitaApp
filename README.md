@@ -4,7 +4,19 @@
 
 [![Expo](https://img.shields.io/badge/Expo-SDK%2052-000020?logo=expo)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React%20Native-0.76-61DAFB?logo=react)](https://reactnative.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Google Maps Platform](https://img.shields.io/badge/Google%20Maps-Platform-4285F4?logo=googlemaps&logoColor=white)](https://mapsplatform.google.com/)
+[![Google Vertex AI](https://img.shields.io/badge/Google%20Vertex%20AI-Gemini-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/vertex-ai)
+
+---
+
+> Built by Team **O(4)** for the **SparkFest 2026** Hackathon.
+
+**Team Members**
+
+- Kharie Ladignon
+- John Dray Lao
+- Vida Marie Quinia
+- Vince Aivan Rumalay
 
 ---
 
@@ -105,6 +117,8 @@ The app then presents two route options: the **fastest route** (gray) and the **
 | **Routing API**          | Google Maps Routes API                          |
 | **Places / Safe Havens** | Google Maps Places API                          |
 | **AI / NLP**             | Google Vertex AI (Gemini)                       |
+| **Route Information**    | Google Directions API                           |
+| **Address Information**  | Google Geocoding API                            |
 | **Backend**              | Python (FastAPI) on Google Cloud Run            |
 | **Database / Realtime**  | Firebase Firestore + Firebase Realtime Database |
 | **Auth**                 | Firebase Authentication                         |
