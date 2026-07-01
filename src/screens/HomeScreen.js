@@ -59,7 +59,7 @@ const HomeScreen = () => {
   const googlePlacesRef = useRef(null);
 
   const snapPoints = useMemo(() => {
-    return [insets.bottom > 0 ? "12%" : "10%"];
+    return [insets.bottom > 0 ? insets.bottom + 65 : 75];
   }, [insets.bottom]);
 
   const [userLocation, setUserLocation] = useState({
@@ -465,12 +465,15 @@ const HomeScreen = () => {
             index={0}
             snapPoints={snapPoints}
             backgroundStyle={styles.sheetBackground}
-            handleIndicatorStyle={{ display: "none" }}
+            handleComponent={null}
           >
             <BottomSheetView
               style={[
                 styles.toolbarContent,
-                { paddingBottom: insets.bottom > 0 ? insets.bottom : 12 },
+                {
+                  paddingTop: 12,
+                  paddingBottom: insets.bottom > 0 ? insets.bottom : 12
+                },
               ]}
             >
               {/* Navigate Tab */}
@@ -785,7 +788,6 @@ const createStyles = (colors) =>
       flexDirection: "row",
       justifyContent: "space-around",
       alignItems: "center",
-      paddingVertical: 4,
       paddingHorizontal: 10,
     },
     toolbarItem: {
