@@ -354,12 +354,18 @@ const MapViewComponent = forwardRef(
                 </Svg>
               </View>
               {userIconType === "circle" ? (
-                <View style={styles.userLocationDot} />
+                <View
+                  style={[
+                    styles.userLocationDot,
+                    isNavigating && styles.userLocationDotNav,
+                  ]}
+                />
               ) : (
                 <Image
                   source={getUserIconImage(userIconType)}
                   style={[
                     styles.userIconImage,
+                    isNavigating && styles.userIconImageNav,
                     { transform: [{ rotate: `${userHeading || 0}deg` }] },
                   ]}
                   resizeMode="contain"
@@ -571,22 +577,22 @@ const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFillObject },
   map: { ...StyleSheet.absoluteFillObject },
   userMarkerContainer: {
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
     justifyContent: "center",
     alignItems: "center",
   },
   coneWrapper: {
     position: "absolute",
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
     justifyContent: "center",
     alignItems: "center",
   },
   userLocationDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: "#1A73E8",
     borderWidth: 2,
     borderColor: "#FFFFFF",
@@ -597,10 +603,24 @@ const styles = StyleSheet.create({
     elevation: 4,
     zIndex: 2,
   },
+  // Bigger blue dot once turn-by-turn POV kicks in
+  userLocationDotNav: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  // Small on the flat top-down map — was rendering oversized after the
+  // PNG got cropped tight, so this is the "overview" size.
   userIconImage: {
-    width: 64,
-    height: 64,
+    width: 36,
+    height: 36,
     zIndex: 2,
+  },
+  // Once the user picks a route and navigation POV/tilt kicks in, the
+  // arrow grows so it reads clearly from the tilted first-person camera.
+  userIconImageNav: {
+    width: 80,
+    height: 80,
   },
   customMarker: {
     backgroundColor: "#1A73E8",
