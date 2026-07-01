@@ -22,9 +22,9 @@
 
 ## Overview
 
-Gabay is a **context-aware pedestrian navigation app** built for Filipino commuters who walk home at night. Unlike Google Maps or Waze — which optimize for speed — Eskenita routes users based on a dynamic **AI-calculated Safety Score**, keeping them on well-lit streets, near open establishments, and away from known hazard zones.
+Gabay is a **context-aware pedestrian navigation app** built for Filipino commuters who walk home at night. Unlike Google Maps or Waze — which optimize for speed — Gabay routes users based on a dynamic **AI-calculated Safety Score**, keeping them on well-lit streets, near open establishments, and away from known hazard zones.
 
-The name comes from _eskenita_ — the Filipino word for the narrow, dark back alleys that are common in Philippine neighborhoods and are frequently associated with crime and poor lighting.
+The name comes from _gabay_ — the  Filipino word that translates to guide, mentor, or patnubay. It refers to something or someone that provides direction, protection, or assistance to help you reach a goal or navigate safely.
 
 Built with **React Native (Expo)**, powered by the **Google Maps Platform** and **Google Vertex AI (Gemini)**, and designed around the needs of:
 
@@ -33,7 +33,7 @@ Built with **React Native (Expo)**, powered by the **Google Maps Platform** and 
 - **Women** navigating public spaces alone at night
 - **Minimum-wage earners** who rely on walking as their primary mode of transit
 
-This project is built under the theme of **UN SDG 11: Sustainable Cities and Communities**.
+This project is built under the theme of **UN SDG 16: Peace, Justice, and Strong Institutions**.
 
 ---
 
