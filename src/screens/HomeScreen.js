@@ -7,7 +7,7 @@ import {
   Users,
 } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import RouteComparisonPanel from "../components/RouteComparisonPanel";
 import ThemeToggleButton from "../components/ThemeToggleButton";
 import ThreatReportModal from "../components/ThreatReportModal";
 import UserIconPicker from "../components/UserIconPicker";
+import HavenSelectorModal from "../components/HavenSelectorModal";
 import { analyzeThreatWithAI } from "../services/MockVertexAi";
 import { fetchDynamicSafeHavens } from "../services/PlacesServices";
 import { useTheme } from "../theme/ThemeContext";
@@ -25,10 +26,10 @@ import { useTheme } from "../theme/ThemeContext";
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const HomeScreen = () => {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const styles = createStyles(colors);
   const [threatPins, setThreatPins] = useState([]);
-  const [destination, setDestination] = useState(null);
+  const [destination, setDestination] = useState({ latitude: 15.4716, longitude: 120.9822 });
   const [dynamicSafeHavens, setDynamicSafeHavens] = useState([]);
 
   const [isGuardianActive, setIsGuardianActive] = useState(false);
@@ -46,7 +47,9 @@ const HomeScreen = () => {
     safeAlt: null,
   });
   const [isGuardianSheetOpen, setIsGuardianSheetOpen] = useState(false);
-
+  const [isHavenSelectorVisible, setIsHavenSelectorVisible] = useState(false);
+  const [isSelectingDestination, setIsSelectingDestination] = useState(false);
+  
   const bottomSheetRef = useRef(null);
   const mapRef = useRef(null);
   const insets = useSafeAreaInsets();
@@ -108,9 +111,22 @@ const HomeScreen = () => {
     setIsGuardianActive(true);
   };
 
-  const handleReportThreat = async (description) => {
-    const aiResult = await analyzeThreatWithAI(description);
-    setThreatPins((prev) => [...prev, aiResult]);
+  const handleReportThreat = async (report) => {
+    const aiResult = await analyzeThreatWithAI(report.description);
+
+    const newThreat = {
+      id: Date.now().toString(),
+      category: report.category,
+      severity: report.severity,
+      description: report.description,
+      location: report.location || userLocation,
+      locationLabel: report.locationLabel,
+      reportedAt: report.reportedAt,
+      ai: aiResult,
+    };
+
+    setThreatPins((prev) => [...prev, newThreat]);
+
     setIsModalVisible(false);
   };
 
@@ -315,6 +331,15 @@ const HomeScreen = () => {
           onRouteStatsUpdate={handleRouteStatsUpdate}
           isNavigating={isNavigating}
           onRouteStepsUpdate={setNavigationSteps}
+          isSelectingDestination={isSelectingDestination}
+          onMapPress={(coordinate) => {
+            if (isSelectingDestination) {
+              setDestination(coordinate);
+              setIsSelectingDestination(false);
+              setSelectedRouteType("safe");
+              setRouteStats({ safe: null, dangerous: null });
+            }
+          }}
           colors={colors}
         />
 
@@ -363,6 +388,12 @@ const HomeScreen = () => {
                   row: styles.searchRow,
                   description: styles.searchDescription,
                 }}
+                textInputProps={{
+                  multiline: false,
+                  scrollEnabled: false,
+                  numberOfLines: 1,
+                  allowFontScaling: false,
+                }}
                 enablePoweredByContainer={false}
               />
               <TouchableOpacity
@@ -383,7 +414,13 @@ const HomeScreen = () => {
         {/* Recenter Map Button */}
         {!isNavigating && (
           <TouchableOpacity
-            style={styles.recenterButton}
+            style={[
+              styles.recenterButton,
+              {
+                backgroundColor: isDarkMode ? colors.card : colors.neonOrange,
+                borderColor: isDarkMode ? colors.border : colors.neonOrange,
+              },
+            ]}
             onPress={handleRecenter}
           >
             <Navigation
@@ -393,6 +430,20 @@ const HomeScreen = () => {
               style={{ marginRight: 2, marginTop: 2 }}
             />
           </TouchableOpacity>
+        )}
+
+        {/* Select Destination Button */}
+        {!isNavigating && (
+        <TouchableOpacity
+          style={[styles.recenterButton, styles.selectDestinationButton, isSelectingDestination && styles.selectDestinationActive]}
+          onPress={() => setIsSelectingDestination(!isSelectingDestination)}
+        >
+          <Image
+            source={require("../../assets/markers/destination-marker.png")}
+            style={styles.destinationButtonIcon}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
         )}
 
         {/* Modern Toolbar Component on Bottom Layer */}
@@ -420,11 +471,7 @@ const HomeScreen = () => {
               >
                 <Navigation
                   size={22}
-                  color={
-                    activeTab === "navigate"
-                      ? colors.primary
-                      : colors.textSecondary
-                  }
+                  color={activeTab === "navigate" ? colors.primary : colors.textSecondary}
                   style={styles.toolbarIcon}
                 />
                 <Text
@@ -439,10 +486,7 @@ const HomeScreen = () => {
 
               {/* Report Tab */}
               <TouchableOpacity
-                style={[
-                  styles.toolbarItem,
-                  activeTab === "report" && styles.activeTab,
-                ]}
+                style={[styles.toolbarItem, activeTab === "report" && styles.activeTab]}
                 onPress={() => {
                   setActiveTab("report");
                   setIsModalVisible(true);
@@ -450,11 +494,7 @@ const HomeScreen = () => {
               >
                 <TriangleAlert
                   size={22}
-                  color={
-                    activeTab === "report"
-                      ? colors.primary
-                      : colors.textSecondary
-                  }
+                  color={activeTab === "report" ? colors.primary : colors.textSecondary}
                   style={styles.toolbarIcon}
                 />
                 <Text
@@ -469,10 +509,7 @@ const HomeScreen = () => {
 
               {/* Guardian Tab */}
               <TouchableOpacity
-                style={[
-                  styles.toolbarItem,
-                  activeTab === "guardian" && styles.activeTab,
-                ]}
+                style={[styles.toolbarItem, activeTab === "guardian" && styles.activeTab]}
                 onPress={() => {
                   setActiveTab("guardian");
                   handleShareGuardian();
@@ -480,11 +517,7 @@ const HomeScreen = () => {
               >
                 <Users
                   size={22}
-                  color={
-                    activeTab === "guardian"
-                      ? colors.primary
-                      : colors.textSecondary
-                  }
+                  color={activeTab === "guardian" ? colors.primary : colors.textSecondary}
                   style={styles.toolbarIcon}
                 />
                 <Text
@@ -499,19 +532,15 @@ const HomeScreen = () => {
 
               {/* Havens Tab */}
               <TouchableOpacity
-                style={[
-                  styles.toolbarItem,
-                  activeTab === "havens" && styles.activeTab,
-                ]}
-                onPress={() => setActiveTab("havens")}
+                style={[styles.toolbarItem, activeTab === "havens" && styles.activeTab]}
+                onPress={() => {
+                  setActiveTab("havens");
+                  setIsHavenSelectorVisible(true);
+                }}
               >
                 <ShieldCheck
                   size={22}
-                  color={
-                    activeTab === "havens"
-                      ? colors.primary
-                      : colors.textSecondary
-                  }
+                  color={activeTab === "havens" ? colors.primary : colors.textSecondary}
                   style={styles.toolbarIcon}
                 />
                 <Text
@@ -530,12 +559,15 @@ const HomeScreen = () => {
                 onPress={() => setIsIconPickerVisible(true)}
               >
                 <View style={styles.customizeIconPreview}>
-                  <View
-                    style={[
-                      styles.customizeIconDot,
-                      userIconType === "triangle" && styles.trianglePreview,
-                    ]}
-                  />
+                  {userIconType === "circle" ? (
+                    <View style={styles.customizeIconDot} />
+                  ) : (
+                    <Image
+                      source={require("../../assets/user-icons/triangle-icon.png")}
+                      style={styles.customizeIconImage}
+                      resizeMode="contain"
+                    />
+                  )}
                 </View>
                 <Text style={styles.toolbarLabel}>Icon</Text>
               </TouchableOpacity>
@@ -544,9 +576,11 @@ const HomeScreen = () => {
         )}
 
         <ThreatReportModal
-          visible={isModalVisible}
-          onClose={() => setIsModalVisible(false)}
-          onSubmit={handleReportThreat}
+            visible={isModalVisible}
+            onClose={() => setIsModalVisible(false)}
+            userLocation={userLocation}
+            locationLabel="Current Location"
+            onSubmit={handleReportThreat}
         />
 
         <UserIconPicker
@@ -554,6 +588,17 @@ const HomeScreen = () => {
           onClose={() => setIsIconPickerVisible(false)}
           onSelect={(iconType) => setUserIconType(iconType)}
           currentIcon={userIconType}
+        />
+
+        <HavenSelectorModal
+          visible={isHavenSelectorVisible}
+          onClose={() => setIsHavenSelectorVisible(false)}
+          havens={dynamicSafeHavens}
+          userLocation={userLocation}
+          onSelectHaven={(haven) => {
+            setDestination(haven.latlng);
+            setSelectedRouteType("safe");
+          }}
         />
 
         {isNavigating && (
@@ -662,12 +707,13 @@ const createStyles = (colors) =>
     },
     textInput: {
       backgroundColor: colors.card,
-      height: 48,
+      height: 44,
       borderRadius: 24,
-      paddingVertical: 14,
+      paddingVertical: 10,
       paddingHorizontal: 16,
       fontSize: 16,
       color: colors.textPrimary,
+      includeFontPadding: false,
       shadowColor: "#000",
       shadowOpacity: 0.3,
       shadowRadius: 12,
@@ -791,7 +837,7 @@ const createStyles = (colors) =>
     },
     themeToggleButton: {
       position: "absolute",
-      bottom: 330,
+      bottom: 340,
       right: 16,
       zIndex: 10,
     },
@@ -836,6 +882,21 @@ const createStyles = (colors) =>
     guardianFabActive: {
       backgroundColor: colors.neonGreen,
       borderColor: colors.neonGreen,
+    },
+    selectDestinationButton: {
+      bottom: 215,
+    },
+    selectDestinationActive: {
+      backgroundColor: "#FF7A1A",
+      borderColor: "#FF7A1A",
+    },
+    destinationButtonIcon: {
+      width: 32,
+      height: 32,
+    },
+    customizeIconImage: {
+      width: 20,
+      height: 20,
     },
   });
 
