@@ -1,20 +1,6 @@
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 
-const palette = {
-  overlay: "rgba(0, 0, 0, 0.6)",
-  sheetBg: "#0F1115",
-  cardBg: "#1A1D24",
-  cardBorder: "#2A2E37",
-  selectedBorder: "#FF7A1A",
-  chipBg: "#15171D",
-  chipBorder: "#272B33",
-  accent: "#FF7A1A",
-  textPrimary: "#F5F6F8",
-  textSecondary: "#A7ACB5",
-  textMuted: "#6E727B",
-};
-
 const ICON_OPTIONS = [
   { id: "circle", label: "Circle" },
   { id: "triangle", label: "Triangle", image: require("../../assets/user-icons/triangle-icon.png") },
@@ -114,30 +100,34 @@ const createStyles = (colors) =>
       alignItems: "center",
       padding: 10,
       borderRadius: 12,
-      width: 90,
+      width: 110,
     },
     selectedIcon: {
       backgroundColor: "rgba(99, 102, 241, 0.1)",
       borderWidth: 2,
       borderColor: colors.primary,
     },
+    // Was 40x40 and hard to see. Bumped up so the picker icons are actually big.
     iconPreview: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
       marginBottom: 8,
     },
-    triangleIcon: {
-      borderRadius: 0,
-      width: 0,
-      height: 0,
-      backgroundColor: "transparent",
-      borderLeftWidth: 20,
-      borderRightWidth: 20,
-      borderBottomWidth: 35,
-      borderLeftColor: "transparent",
-      borderRightColor: "transparent",
-      borderBottomColor: "#00CED1",
+    // BUG FIX: this was referenced in JSX (styles.circlePreview) but never
+    // defined here, so the circle option rendered with no size/color at all.
+    circlePreview: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.triangleColor || "#00CED1",
+      marginBottom: 8,
+    },
+    // BUG FIX: also referenced (styles.selectedIconPreview) but never defined,
+    // so selecting an icon never actually highlighted it.
+    selectedIconPreview: {
+      borderWidth: 3,
+      borderColor: colors.primary,
     },
     iconLabel: {
       color: colors.textSecondary,

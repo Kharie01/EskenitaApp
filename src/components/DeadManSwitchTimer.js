@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 
@@ -10,6 +10,9 @@ const DeadManSwitchTimer = ({
 }) => {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  // BUG FIX: timeLeft/setTimeLeft were referenced below but never declared —
+  // this threw a ReferenceError the instant isActive became true.
+  const [timeLeft, setTimeLeft] = useState(240);
 
   useEffect(() => {
     if (!isActive) {

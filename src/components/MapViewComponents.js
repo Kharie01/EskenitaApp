@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useMemo, useState } from "react";
-import { Image, Platform, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
@@ -27,7 +27,7 @@ const getOffsetCenter = (location, heading, distance = 0.00045) => {
     longitude:
       location.longitude -
       (distance * Math.sin(rad)) /
-        Math.cos((location.latitude * Math.PI) / 180),
+      Math.cos((location.latitude * Math.PI) / 180),
   };
 };
 
@@ -96,17 +96,17 @@ const MapViewComponent = forwardRef(
     const [isMarkerModalVisible, setIsMarkerModalVisible] = useState(false);
     const [mapRegion, setMapRegion] = useState(null);
     const [zoomLevel, setZoomLevel] = useState(15);
-    const origin = userLocation || { latitude: 15.4828, longitude: 120.9749 }; // Near NEUST
+    const origin = userLocation; // || { latitude: 15.4828, longitude: 120.9749 }// 
 
     const toRad = (value) => (value * Math.PI) / 180;
 
     const routeVector = destination
       ? {
-          x:
-            (destination.longitude - origin.longitude) *
-            Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
-          y: destination.latitude - origin.latitude,
-        }
+        x:
+          (destination.longitude - origin.longitude) *
+          Math.cos(toRad((origin.latitude + destination.latitude) / 2)),
+        y: destination.latitude - origin.latitude,
+      }
       : { x: 0, y: 0 };
 
     const projectionOnRoute = (point) => {
@@ -263,6 +263,28 @@ const MapViewComponent = forwardRef(
       }
     }, [isNavigating, origin, userHeading, ref]);
 
+    const visibleSafeHavens = useMemo(() => {
+      return safeHavens.filter((haven) => {
+        if (!origin) return true;
+        const dx = haven.latlng.longitude - origin.longitude;
+        const dy = haven.latlng.latitude - origin.latitude;
+        const x = dx * Math.cos(toRad((origin.latitude + haven.latlng.latitude) / 2));
+        const distToUserKm = Math.sqrt(x * x + dy * dy) * 111.32;
+
+        if (distToUserKm <= 0.3) return true;
+
+        if (destination) {
+          const proj = projectionOnRoute(haven.latlng);
+          if (proj >= -0.1 && proj <= 1.1) {
+            const distToPathKm = distanceToRoute(haven.latlng);
+            if (distToPathKm <= 0.3) return true;
+          }
+        }
+
+        return false;
+      });
+    }, [safeHavens, origin, destination]);
+
     return (
       <View style={styles.container}>
         <MapView
@@ -332,12 +354,18 @@ const MapViewComponent = forwardRef(
                 </Svg>
               </View>
               {userIconType === "circle" ? (
-                <View style={styles.userLocationDot} />
+                <View
+                  style={[
+                    styles.userLocationDot,
+                    isNavigating && styles.userLocationDotNav,
+                  ]}
+                />
               ) : (
                 <Image
                   source={getUserIconImage(userIconType)}
                   style={[
                     styles.userIconImage,
+                    isNavigating && styles.userIconImageNav,
                     { transform: [{ rotate: `${userHeading || 0}deg` }] },
                   ]}
                   resizeMode="contain"
@@ -388,7 +416,6 @@ const MapViewComponent = forwardRef(
                 optimizeWaypoints={false}
                 zIndex={selectedRouteType === "dangerous" ? 4 : 2}
                 onReady={(result) => {
-                  console.log("Dangerous route ready:", result);
                   onRouteStatsUpdate?.("dangerous", {
                     duration: result.duration,
                     distance: result.distance,
@@ -421,7 +448,6 @@ const MapViewComponent = forwardRef(
                 optimizeWaypoints={false}
                 zIndex={selectedRouteType === "safe" ? 5 : 3}
                 onReady={(result) => {
-                  console.log("Safe route ready:", result);
                   onRouteStatsUpdate?.("safe", {
                     duration: result.duration,
                     distance: result.distance,
@@ -470,7 +496,7 @@ const MapViewComponent = forwardRef(
           )}
 
           {/* Render all surrounding safety points */}
-          {safeHavens.map((haven) => (
+          {visibleSafeHavens.map((haven) => (
             <Marker
               key={haven.id}
               coordinate={haven.latlng}
@@ -551,22 +577,22 @@ const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFillObject },
   map: { ...StyleSheet.absoluteFillObject },
   userMarkerContainer: {
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
     justifyContent: "center",
     alignItems: "center",
   },
   coneWrapper: {
     position: "absolute",
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
     justifyContent: "center",
     alignItems: "center",
   },
   userLocationDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: "#1A73E8",
     borderWidth: 2,
     borderColor: "#FFFFFF",
@@ -577,10 +603,24 @@ const styles = StyleSheet.create({
     elevation: 4,
     zIndex: 2,
   },
+  // Bigger blue dot once turn-by-turn POV kicks in
+  userLocationDotNav: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  // Small on the flat top-down map — was rendering oversized after the
+  // PNG got cropped tight, so this is the "overview" size.
   userIconImage: {
-    width: 64,
-    height: 64,
+    width: 36,
+    height: 36,
     zIndex: 2,
+  },
+  // Once the user picks a route and navigation POV/tilt kicks in, the
+  // arrow grows so it reads clearly from the tilted first-person camera.
+  userIconImageNav: {
+    width: 80,
+    height: 80,
   },
   customMarker: {
     backgroundColor: "#1A73E8",
