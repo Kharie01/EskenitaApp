@@ -1,5 +1,5 @@
 import React from "react";
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import CommunityIllustration from "./illustrations/CommunityIllustration";
 import ConnectedIllustration from "./illustrations/ConnectedIllustration";
