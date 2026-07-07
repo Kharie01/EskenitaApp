@@ -21,7 +21,9 @@ const OnboardingCarousel = ({ onComplete, onSkip }) => {
   const currentScreen = ONBOARDING_SCREENS[currentIndex];
 
   return (
-    <View style={styles.container}>
+    // Full-bleed backdrop matches the current slide picture's background
+    // color, so the artwork blends into the screen edge-to-edge
+    <View style={[styles.container, { backgroundColor: currentScreen.bg }]}>
       <OnboardingSlide
         screen={currentScreen}
         index={currentIndex}
@@ -37,7 +39,6 @@ const OnboardingCarousel = ({ onComplete, onSkip }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "transparent",
   },
 });
 

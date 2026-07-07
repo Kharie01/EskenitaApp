@@ -34,7 +34,9 @@ const OnboardingScreen = ({ visible, onComplete, onSkip }) => {
           colors.textPrimary === "#F5F1EC" ? "light-content" : "dark-content"
         }
       />
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Fixed dark backdrop — the slide artwork is dark, so onboarding
+          stays dark regardless of the app theme */}
+      <View style={[styles.container, { backgroundColor: "#262626" }]}>
         <OnboardingCarousel onComplete={handleComplete} onSkip={handleSkip} />
       </View>
     </Modal>

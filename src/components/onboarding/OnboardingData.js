@@ -1,3 +1,6 @@
+// `bg` matches each slide picture's own background color (sampled from the
+// PNG corners) so the artwork blends seamlessly into the screen instead of
+// sitting in a visible rectangle.
 export const ONBOARDING_SCREENS = [
   {
     id: 1,
@@ -7,6 +10,7 @@ export const ONBOARDING_SCREENS = [
     cta: "Get Started",
     brandLine: "Your Guide Home, Every Step of the Way.",
     illustration: "welcome",
+    bg: "#262626",
   },
   {
     id: 2,
@@ -16,6 +20,7 @@ export const ONBOARDING_SCREENS = [
     cta: "Next",
     brandLine: "Safe Routes. Safer Nights.",
     illustration: "safe-routes",
+    bg: "#1D1E20",
   },
   {
     id: 3,
@@ -25,6 +30,7 @@ export const ONBOARDING_SCREENS = [
     cta: "Next",
     brandLine: "Never Walk Alone Again.",
     illustration: "connected",
+    bg: "#262626",
   },
   {
     id: 4,
@@ -35,5 +41,6 @@ export const ONBOARDING_SCREENS = [
     secondaryCta: "Skip",
     brandLine: "Wherever You're Going, Gabay Goes With You.",
     illustration: "community",
+    bg: "#262626",
   },
 ];

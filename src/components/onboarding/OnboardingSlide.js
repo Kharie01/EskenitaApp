@@ -10,6 +10,12 @@ const ILLUSTRATION_IMAGES = {
   community: require("../../../assets/onboarding picture/4.png"),
 };
 
+// Onboarding always sits on the artwork's dark charcoal backdrop, so text
+// uses a fixed light palette instead of the (possibly light) app theme
+const TEXT_PRIMARY = "#F5F1EC";
+const TEXT_SECONDARY = "#A89F93";
+const INDICATOR_INACTIVE = "rgba(255, 255, 255, 0.18)";
+
 const OnboardingSlide = ({
   screen,
   index,
@@ -45,18 +51,18 @@ const OnboardingSlide = ({
               <Text style={[styles.subtitle, { color: colors.primary }]}>
                 {screen.subtitle}
               </Text>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>
+              <Text style={[styles.title, { color: TEXT_PRIMARY }]}>
                 {screen.title}
               </Text>
               <Text
-                style={[styles.description, { color: colors.textSecondary }]}
+                style={[styles.description, { color: TEXT_SECONDARY }]}
               >
                 {screen.description}
               </Text>
               <Text
                 style={[
                   styles.brandLine,
-                  { color: colors.textSecondary, opacity: 0.7 },
+                  { color: TEXT_SECONDARY, opacity: 0.7 },
                 ]}
               >
                 {screen.brandLine}
@@ -72,7 +78,7 @@ const OnboardingSlide = ({
                     styles.indicator,
                     {
                       backgroundColor:
-                        i === index ? colors.primary : colors.border,
+                        i === index ? colors.primary : INDICATOR_INACTIVE,
                       width: i === index ? 24 : 8,
                     },
                   ]}
@@ -84,7 +90,7 @@ const OnboardingSlide = ({
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
                 <Text
-                  style={[styles.skipText, { color: colors.textSecondary }]}
+                  style={[styles.skipText, { color: TEXT_SECONDARY }]}
                 >
                   Skip
                 </Text>
@@ -112,18 +118,18 @@ const OnboardingSlide = ({
               <Text style={[styles.subtitle, { color: colors.primary }]}>
                 {screen.subtitle}
               </Text>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>
+              <Text style={[styles.title, { color: TEXT_PRIMARY }]}>
                 {screen.title}
               </Text>
               <Text
-                style={[styles.description, { color: colors.textSecondary }]}
+                style={[styles.description, { color: TEXT_SECONDARY }]}
               >
                 {screen.description}
               </Text>
               <Text
                 style={[
                   styles.brandLine,
-                  { color: colors.textSecondary, opacity: 0.7 },
+                  { color: TEXT_SECONDARY, opacity: 0.7 },
                 ]}
               >
                 {screen.brandLine}
@@ -139,7 +145,7 @@ const OnboardingSlide = ({
                     styles.indicator,
                     {
                       backgroundColor:
-                        i === index ? colors.primary : colors.border,
+                        i === index ? colors.primary : INDICATOR_INACTIVE,
                       width: i === index ? 24 : 8,
                     },
                   ]}
@@ -151,7 +157,7 @@ const OnboardingSlide = ({
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
                 <Text
-                  style={[styles.skipText, { color: colors.textSecondary }]}
+                  style={[styles.skipText, { color: TEXT_SECONDARY }]}
                 >
                   Skip
                 </Text>
@@ -197,14 +203,15 @@ content: {
   justifyContent: "center",
   alignItems: "center",
   width: "100%",
-  height: Platform.OS === "web" ? 200 : 240,
+  height: Platform.OS === "web" ? 240 : 240,
   flexShrink: 0,
   overflow: "hidden",
 },
 illustrationImage: {
+  // No border radius — the backdrop matches the picture's own background,
+  // so the artwork blends into the screen without visible edges
   width: "100%",
   height: "100%",
-  borderRadius: 16,
 },
   textContainer: {
     alignItems: "center",
