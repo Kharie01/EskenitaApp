@@ -8,20 +8,21 @@ import {
   Users,
   X,
 } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import GuardianProtectionPanel from "../components/GuardianProtectionPanel";
 import HavenSelectorModal from "../components/HavenSelectorModal";
-import MapViewComponent from "../components/MapViewComponents";
+import MapControls from "../components/controls/MapControls";
+import MapViewComponent from "../components/map/MapView";
 import NavigationHud from "../components/NavigationHud";
 import RouteComparisonPanel from "../components/RouteComparisonPanel";
 import ThemeToggleButton from "../components/ThemeToggleButton";
 import ThreatReportModal from "../components/ThreatReportModal";
 import UserIconPicker from "../components/UserIconPicker";
-import WebPlacesSearch from "../components/WebPlacesSearch";
+import WebPlacesSearch from "../components/search/WebPlacesSearch";
 import { analyzeThreatWithAI } from "../services/MockVertexAi";
 import { fetchDynamicSafeHavens } from "../services/PlacesServices";
 import { useTheme } from "../theme/ThemeContext";
@@ -53,6 +54,7 @@ const HomeScreen = () => {
   const [isGuardianSheetOpen, setIsGuardianSheetOpen] = useState(false);
   const [isHavenSelectorVisible, setIsHavenSelectorVisible] = useState(false);
   const [isSelectingDestination, setIsSelectingDestination] = useState(false);
+  const [mapBearing, setMapBearing] = useState(0);
 
   const bottomSheetRef = useRef(null);
   const mapRef = useRef(null);
@@ -81,7 +83,7 @@ const HomeScreen = () => {
     setSearchText("");
   };
 
-  const handleNavigateToMarker = (marker) => {
+  const handleNavigateToMarker = useCallback((marker) => {
     if (!marker?.location) return;
 
     setDestination({
@@ -93,7 +95,7 @@ const HomeScreen = () => {
     setIsSelectingDestination(false);
     setIsNavigating(true);
     setCurrentStepIndex(0);
-  };
+  }, []);
 
   const handleSelectRoute = (routeType) => {
     if (routeType === "dangerous") {
@@ -107,9 +109,26 @@ const HomeScreen = () => {
     setSelectedRouteType(routeType);
   };
 
-  const handleRouteStatsUpdate = (routeType, stats) => {
+  const handleRouteStatsUpdate = useCallback((routeType, stats) => {
     setRouteStats((prev) => ({ ...prev, [routeType]: stats }));
-  };
+  }, []);
+
+  const handleMapPress = useCallback(
+    (coordinate) => {
+      if (isSelectingDestination) {
+        setDestination(coordinate);
+        setIsSelectingDestination(false);
+        setSelectedRouteType("safe");
+        setRouteStats({ safe: null, dangerous: null, safeAlt: null });
+      }
+    },
+    [isSelectingDestination],
+  );
+
+  // Rounded so the compass only re-renders on whole-degree changes
+  const handleCameraChanged = useCallback(({ bearing }) => {
+    setMapBearing(Math.round(bearing));
+  }, []);
 
   const handleStartNavigation = () => {
     setIsNavigating(true);
@@ -202,8 +221,12 @@ const HomeScreen = () => {
     }
   }, [userLocation, isNavigating, navigationSteps, currentStepIndex]);
 
-  const handleRecenter = () => {
-    if (mapRef.current && userLocation) {
+  const handleRecenter = useCallback(() => {
+    if (!mapRef.current) return;
+    if (!userLocation) return;
+    if (!mapRef.current.animateCamera) return;
+
+    try {
       mapRef.current.animateCamera(
         {
           center: {
@@ -213,8 +236,10 @@ const HomeScreen = () => {
         },
         { duration: 1000 },
       );
+    } catch (error) {
+      console.error("Error calling animateCamera:", error);
     }
-  };
+  }, [userLocation]);
 
   useEffect(() => {
     if (userLocation) {
@@ -349,15 +374,9 @@ const HomeScreen = () => {
           isNavigating={isNavigating}
           onRouteStepsUpdate={setNavigationSteps}
           isSelectingDestination={isSelectingDestination}
-          onMapPress={(coordinate) => {
-            if (isSelectingDestination) {
-              setDestination(coordinate);
-              setIsSelectingDestination(false);
-              setSelectedRouteType("safe");
-              setRouteStats({ safe: null, dangerous: null });
-            }
-          }}
+          onMapPress={handleMapPress}
           onNavigateToMarker={handleNavigateToMarker}
+          onCameraChanged={handleCameraChanged}
           colors={colors}
         />
 
@@ -467,25 +486,15 @@ const HomeScreen = () => {
           <ThemeToggleButton style={styles.themeToggleButton} />
         )}
 
-        {/* Recenter Map Button */}
+        {/* Floating map controls: zoom / compass (web) + recenter */}
         {!isNavigating && (
-          <TouchableOpacity
-            style={[
-              styles.recenterButton,
-              {
-                backgroundColor: isDarkMode ? colors.card : colors.neonOrange,
-                borderColor: isDarkMode ? colors.border : colors.neonOrange,
-              },
-            ]}
-            onPress={handleRecenter}
-          >
-            <Navigation
-              size={24}
-              color="#FFFFFF"
-              fill="#FFFFFF"
-              style={{ marginRight: 2, marginTop: 2 }}
-            />
-          </TouchableOpacity>
+          <MapControls
+            mapRef={mapRef}
+            bearing={mapBearing}
+            onRecenter={handleRecenter}
+            colors={colors}
+            isDarkMode={isDarkMode}
+          />
         )}
 
         {/* Select Destination Button */}
@@ -903,8 +912,8 @@ const createStyles = (colors) =>
     },
     themeToggleButton: {
       position: "absolute",
-      bottom: 230,
-      right: 16,
+      top: 120,
+      left: 16,
       zIndex: 10,
     },
     recenterButton: {

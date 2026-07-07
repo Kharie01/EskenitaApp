@@ -4,14 +4,14 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
 import CustomMarker from "./CustomMarker";
-import MarkerDetailModal from "./MarkerDetailModal";
+import MarkerDetailModal from "../MarkerDetailModal";
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const getUserIconImage = (iconType) => {
   switch (iconType) {
     case "triangle":
-      return require("../../assets/user-icons/triangle-icon.png");
+      return require("../../../assets/user-icons/triangle-icon.png");
     default:
       return null;
   }

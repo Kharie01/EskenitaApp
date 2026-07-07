@@ -2,7 +2,7 @@
 // from a browser (CORS), so on web we geocode with OpenStreetMap's Nominatim
 // instead. Visually mirrors the native search bar in HomeScreen.
 import { Search, X } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import useDebounce from "../../hooks/useDebounce";
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
@@ -26,7 +27,7 @@ const WebPlacesSearch = ({
   const [text, setText] = useState("");
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const debounceRef = useRef(null);
+  const debouncedText = useDebounce(text, 450);
   const styles = createStyles(colors);
 
   // Once a destination is chosen (via search, map tap, or haven "Go"),
@@ -36,16 +37,16 @@ const WebPlacesSearch = ({
   }, [hasDestination]);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const query = text.trim();
+    const query = debouncedText.trim();
     if (query.length < 3) {
       setResults([]);
       setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-    debounceRef.current = setTimeout(async () => {
+    let cancelled = false;
+    const search = async () => {
+      setIsLoading(true);
       try {
         // Bias results toward the user's area (viewbox is a soft preference)
         const params = new URLSearchParams({
@@ -69,18 +70,21 @@ const WebPlacesSearch = ({
         }
         const response = await fetch(`${NOMINATIM_URL}?${params}`);
         const data = await response.json();
-        setResults(Array.isArray(data) ? data : []);
+        if (!cancelled) setResults(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Nominatim search error:", error);
-        setResults([]);
+        if (!cancelled) setResults([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
-    }, 450);
+    };
+    search();
 
-    return () => clearTimeout(debounceRef.current);
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text]);
+  }, [debouncedText]);
 
   const handleSelect = (item) => {
     setResults([]);
