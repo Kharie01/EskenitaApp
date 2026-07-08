@@ -29,8 +29,6 @@ function AppContent() {
   const checkOnboardingStatus = async () => {
     try {
       const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
-      console.log("Onboarding status from storage:", completed);
-      // Force show onboarding for web testing - remove this line after testing
       if (Platform.OS === "web") {
         await AsyncStorage.removeItem(ONBOARDING_COMPLETED_KEY);
         setShowOnboarding(true);
