@@ -1,10 +1,20 @@
 import React from "react";
-import { Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
-import CommunityIllustration from "./illustrations/CommunityIllustration";
-import ConnectedIllustration from "./illustrations/ConnectedIllustration";
-import SafeRoutesIllustration from "./illustrations/SafeRoutesIllustration";
-import WelcomeIllustration from "./illustrations/WelcomeIllustration";
+
+// Slide artwork, numbered by slide order (1 = welcome … 4 = community)
+const ILLUSTRATION_IMAGES = {
+  welcome: require("../../../assets/onboarding picture/1.png"),
+  "safe-routes": require("../../../assets/onboarding picture/2.png"),
+  connected: require("../../../assets/onboarding picture/3.png"),
+  community: require("../../../assets/onboarding picture/4.png"),
+};
+
+// Onboarding always sits on the artwork's dark charcoal backdrop, so text
+// uses a fixed light palette instead of the (possibly light) app theme
+const TEXT_PRIMARY = "#F5F1EC";
+const TEXT_SECONDARY = "#A89F93";
+const INDICATOR_INACTIVE = "rgba(255, 255, 255, 0.18)";
 
 const OnboardingSlide = ({
   screen,
@@ -16,20 +26,15 @@ const OnboardingSlide = ({
 }) => {
   const { colors } = useTheme();
 
-  const renderIllustration = () => {
-    switch (screen.illustration) {
-      case "welcome":
-        return <WelcomeIllustration colors={colors} />;
-      case "safe-routes":
-        return <SafeRoutesIllustration colors={colors} />;
-      case "connected":
-        return <ConnectedIllustration colors={colors} />;
-      case "community":
-        return <CommunityIllustration colors={colors} />;
-      default:
-        return <WelcomeIllustration colors={colors} />;
-    }
-  };
+  const renderIllustration = () => (
+    <Image
+      source={
+        ILLUSTRATION_IMAGES[screen.illustration] || ILLUSTRATION_IMAGES.welcome
+      }
+      style={styles.illustrationImage}
+      resizeMode="contain"
+    />
+  );
 
   return (
     <View style={styles.slide}>
@@ -37,16 +42,29 @@ const OnboardingSlide = ({
         <View style={styles.safeArea}>
           <View style={styles.content}>
             {/* Illustration */}
-            <View style={styles.illustrationContainer}>{renderIllustration()}</View>
+            <View style={styles.illustrationContainer}>
+              {renderIllustration()}
+            </View>
 
             {/* Text Content */}
             <View style={styles.textContainer}>
-              <Text style={[styles.subtitle, { color: colors.primary }]}>{screen.subtitle}</Text>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>{screen.title}</Text>
-              <Text style={[styles.description, { color: colors.textSecondary }]}>
+              <Text style={[styles.subtitle, { color: colors.primary }]}>
+                {screen.subtitle}
+              </Text>
+              <Text style={[styles.title, { color: TEXT_PRIMARY }]}>
+                {screen.title}
+              </Text>
+              <Text
+                style={[styles.description, { color: TEXT_SECONDARY }]}
+              >
                 {screen.description}
               </Text>
-              <Text style={[styles.brandLine, { color: colors.textSecondary, opacity: 0.7 }]}>
+              <Text
+                style={[
+                  styles.brandLine,
+                  { color: TEXT_SECONDARY, opacity: 0.7 },
+                ]}
+              >
                 {screen.brandLine}
               </Text>
             </View>
@@ -59,7 +77,8 @@ const OnboardingSlide = ({
                   style={[
                     styles.indicator,
                     {
-                      backgroundColor: i === index ? colors.primary : colors.border,
+                      backgroundColor:
+                        i === index ? colors.primary : INDICATOR_INACTIVE,
                       width: i === index ? 24 : 8,
                     },
                   ]}
@@ -70,7 +89,11 @@ const OnboardingSlide = ({
             {/* Buttons */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
-                <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip</Text>
+                <Text
+                  style={[styles.skipText, { color: TEXT_SECONDARY }]}
+                >
+                  Skip
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -86,16 +109,29 @@ const OnboardingSlide = ({
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.content}>
             {/* Illustration */}
-            <View style={styles.illustrationContainer}>{renderIllustration()}</View>
+            <View style={styles.illustrationContainer}>
+              {renderIllustration()}
+            </View>
 
             {/* Text Content */}
             <View style={styles.textContainer}>
-              <Text style={[styles.subtitle, { color: colors.primary }]}>{screen.subtitle}</Text>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>{screen.title}</Text>
-              <Text style={[styles.description, { color: colors.textSecondary }]}>
+              <Text style={[styles.subtitle, { color: colors.primary }]}>
+                {screen.subtitle}
+              </Text>
+              <Text style={[styles.title, { color: TEXT_PRIMARY }]}>
+                {screen.title}
+              </Text>
+              <Text
+                style={[styles.description, { color: TEXT_SECONDARY }]}
+              >
                 {screen.description}
               </Text>
-              <Text style={[styles.brandLine, { color: colors.textSecondary, opacity: 0.7 }]}>
+              <Text
+                style={[
+                  styles.brandLine,
+                  { color: TEXT_SECONDARY, opacity: 0.7 },
+                ]}
+              >
                 {screen.brandLine}
               </Text>
             </View>
@@ -108,7 +144,8 @@ const OnboardingSlide = ({
                   style={[
                     styles.indicator,
                     {
-                      backgroundColor: i === index ? colors.primary : colors.border,
+                      backgroundColor:
+                        i === index ? colors.primary : INDICATOR_INACTIVE,
                       width: i === index ? 24 : 8,
                     },
                   ]}
@@ -119,7 +156,11 @@ const OnboardingSlide = ({
             {/* Buttons */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
-                <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip</Text>
+                <Text
+                  style={[styles.skipText, { color: TEXT_SECONDARY }]}
+                >
+                  Skip
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -162,9 +203,15 @@ content: {
   justifyContent: "center",
   alignItems: "center",
   width: "100%",
-  height: Platform.OS === "web" ? 180 : 240,
+  height: Platform.OS === "web" ? 240 : 240,
   flexShrink: 0,
   overflow: "hidden",
+},
+illustrationImage: {
+  // No border radius — the backdrop matches the picture's own background,
+  // so the artwork blends into the screen without visible edges
+  width: "100%",
+  height: "100%",
 },
   textContainer: {
     alignItems: "center",
